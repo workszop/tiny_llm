@@ -376,6 +376,8 @@ details.more > :not(summary) { margin: 10px 14px; font-size: var(--body-sm); }
 .stats b { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; line-height: 1.15; color: var(--ink); overflow-wrap: anywhere; }
 .chart { display: block; width: 100%; height: 190px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); }
 .chart-small { height: 110px; }
+.chart-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.chart-pair p { margin: 0 0 6px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: var(--body-sm); color: var(--ink-2); }
 .key { display: inline-block; width: 22px; height: 2px; }
 .key-ink { background: var(--ink); }
@@ -458,6 +460,9 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
   .nav { position: sticky; top: 0; z-index: 50; background: var(--paper); padding: 6px 16px; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; border-bottom: 1px solid var(--line-2); }
   .nav-pill { padding: 12px 12px; min-height: 44px; display: inline-flex; align-items: center; }
   #views a { display: inline-block; padding: 10px 0; }
+  #views a.link-more { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+  .seed-control input { min-height: 44px; }
+  .chart-pair { grid-template-columns: minmax(0, 1fr); }
   .opt input { width: 22px; height: 22px; }
   .train-bar { padding: 4px 16px; gap: 2px 10px; }
   .train-bar { top: 53px; }
@@ -478,7 +483,6 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous" async></script>
 </head>
 <body class="edu">
 <a class="skip-link" id="skip-link" href="#views"></a>
@@ -624,6 +628,38 @@ const SOURCE_LINKS = {
   deepseek: 'https://arxiv.org/abs/2501.12948',
 };
 
+// Lucide icons (ISC licence) inlined so badges never depend on a CDN.
+const ICON_PATHS = {"brain":"<path d=\"M12 18V5\"/><path d=\"M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4\"/><path d=\"M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5\"/><path d=\"M17.997 5.125a4 4 0 0 1 2.526 5.77\"/><path d=\"M18 18a4 4 0 0 0 2-7.464\"/><path d=\"M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517\"/><path d=\"M6 18a4 4 0 0 1-2-7.464\"/><path d=\"M6.003 5.125a4 4 0 0 0-2.526 5.77\"/>",
+  "list-ordered":"<path d=\"M11 5h10\"/><path d=\"M11 12h10\"/><path d=\"M11 19h10\"/><path d=\"M4 4h1v5\"/><path d=\"M4 9h2\"/><path d=\"M6.5 20H3.4c0-1 2.6-1.925 2.6-3.5a1.5 1.5 0 0 0-2.6-1.02\"/>",
+  "thermometer":"<path d=\"M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z\"/>",
+  "book-open":"<path d=\"M12 5v16\"/><path d=\"M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z\"/>",
+  "footprints":"<path d=\"M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z\"/><path d=\"M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z\"/><path d=\"M16 17h4\"/><path d=\"M4 13h4\"/>",
+  "file-text":"<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/>",
+  "text":"<path d=\"M21 5H3\"/><path d=\"M15 12H3\"/><path d=\"M17 19H3\"/>",
+  "library":"<path d=\"m16 6 4 14\"/><path d=\"M12 6v14\"/><path d=\"M8 8v12\"/><path d=\"M4 4v16\"/>",
+  "network":"<rect x=\"16\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"2\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"9\" y=\"2\" width=\"6\" height=\"6\" rx=\"1\"/><path d=\"M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3\"/><path d=\"M12 12V8\"/>",
+  "git-compare":"<circle cx=\"18\" cy=\"18\" r=\"3\"/><circle cx=\"6\" cy=\"6\" r=\"3\"/><path d=\"M13 6h3a2 2 0 0 1 2 2v7\"/><path d=\"M11 18H8a2 2 0 0 1-2-2V9\"/>",
+  "users":"<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><path d=\"M16 3.128a4 4 0 0 1 0 7.744\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/>",
+  "graduation-cap":"<path d=\"M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z\"/><path d=\"M22 10v6\"/><path d=\"M6 12.5V16a6 3 0 0 0 12 0v-3.5\"/>",
+  "arrow-right-left":"<path d=\"m16 3 4 4-4 4\"/><path d=\"M20 7H4\"/><path d=\"m8 21-4-4 4-4\"/><path d=\"M4 17h16\"/>",
+  "table":"<path d=\"M12 3v18\"/><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M3 9h18\"/><path d=\"M3 15h18\"/>",
+  "shuffle":"<path d=\"m18 14 4 4-4 4\"/><path d=\"m18 2 4 4-4 4\"/><path d=\"M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22\"/><path d=\"M2 6h1.972a4 4 0 0 1 3.6 2.2\"/><path d=\"M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45\"/>",
+  "thumbs-up":"<path d=\"M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z\"/><path d=\"M7 10v12\"/>",
+  "scale":"<path d=\"M12 3v18\"/><path d=\"m19 8 3 8a5 5 0 0 1-6 0zV7\"/><path d=\"M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1\"/><path d=\"m5 8 3 8a5 5 0 0 1-6 0zV7\"/><path d=\"M7 21h10\"/>",
+  "award":"<path d=\"m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526\"/><circle cx=\"12\" cy=\"8\" r=\"6\"/>",
+  "package-open":"<path d=\"M12 22v-9\"/><path d=\"M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36z\"/><path d=\"M20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13\"/><path d=\"M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z\"/>",
+  "list-checks":"<path d=\"M13 5h8\"/><path d=\"M13 12h8\"/><path d=\"M13 19h8\"/><path d=\"m3 17 2 2 4-4\"/><path d=\"m3 7 2 2 4-4\"/>",
+  "columns-3":"<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"M15 3v18\"/>",
+  "database":"<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\"/><path d=\"M3 5V19A9 3 0 0 0 21 19V5\"/><path d=\"M3 12A9 3 0 0 0 21 12\"/>",
+  "check":"<path d=\"M20 6 9 17l-5-5\"/>",
+  "minimize-2":"<path d=\"m14 10 7-7\"/><path d=\"M20 10h-6V4\"/><path d=\"m3 21 7-7\"/><path d=\"M4 14h6v6\"/>",
+  "git-branch":"<path d=\"M15 6a9 9 0 0 0-9 9V3\"/><circle cx=\"18\" cy=\"6\" r=\"3\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/>",
+  "ruler":"<path d=\"M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z\"/><path d=\"m14.5 12.5 2-2\"/><path d=\"m11.5 9.5 2-2\"/><path d=\"m8.5 6.5 2-2\"/><path d=\"m17.5 15.5 2-2\"/>",
+  "book-marked":"<path d=\"M10 2v7.751a.25.25 0 00.407.195l2.28-1.834a.5.5 0 01.627 0l2.28 1.834A.25.25 0 0016 9.751V2\"/><path d=\"M4 19.5v-15A2.5 2.5 0 016.5 2H19a1 1 0 011 1v18a1 1 0 01-1 1H6.5a1 1 0 010-5H20\"/>",
+  "circle-help":"<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"/><path d=\"M12 17h.01\"/>",
+  "repeat":"<path d=\"m17 2 4 4-4 4\"/><path d=\"M3 11v-1a4 4 0 0 1 4-4h14\"/><path d=\"m7 22-4-4 4-4\"/><path d=\"M21 13v1a4 4 0 0 1-4 4H3\"/>",
+  "flask-conical":"<path d=\"M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2\"/><path d=\"M6.453 15h11.094\"/><path d=\"M8.5 2h7\"/>"};
+
 // ─── Constants: UI strings ───
 const T = {
   docTitle: 'Jak uczy się model językowy',
@@ -692,6 +728,9 @@ const T = {
 
   sameTitle: 'Ten sam prompt',
   sameUntrained: 'Jeszcze nie wytrenowano. Tu nie ma przykładów na niby, tylko prawdziwe próbki po treningu.',
+  sameNoPrompt: 'Prompt jest pusty, więc nic nie wylosowano. Model jest wytrenowany: wpisz prompt w widoku Porównanie.',
+  samePromptEmpty: '(pusty prompt)',
+  cmpCurrent: 'Porównywany prompt: {prompt}',
   benchReroll: 'Losuj ponownie',
   colPretrain: 'Po pretrainingu',
   colSft: 'Po SFT',
@@ -769,10 +808,12 @@ const T = {
   corpusStat: '{tokens} tokenów, {vocab} różnych',
   preMemRow: 'Co zostaje w wagach',
   preMemTile: 'Wektory słów',
-  preMemText: 'Słowa używane podobnie dostają podobne wektory. Porównaj sąsiadów przed treningiem i po nim.',
+  preMemText: 'Słowa używane podobnie zbliżają się do siebie. W tak małym modelu efekt jest słaby i zaszumiony: sprawdź „Paryż”.',
+  neighBefore: 'przed treningiem',
+  neighAfter: 'po pretrainingu',
+  neighAfterLocked: 'Wariant „po pretrainingu” będzie dostępny po treningu.',
   neighTitle: 'Najbliżsi sąsiedzi',
   neighToken: 'Token',
-  neighSource: 'model: {name}',
   preDataTitle: 'Jakie dane',
   preDataText: 'Zwykły tekst z sieci i książek. Nikt go nie oznacza, tylko filtruje. Dla GPT-3: 300 mld tokenów.',
   preExpTitle: 'Złe dane: pomieszany korpus',
@@ -818,7 +859,7 @@ const T = {
   rlChain3: 'Model pisze odpowiedzi na prompty bez etykiet.',
   rlChain4: 'Nagroda wzmacnia to, co oceniła wysoko.',
   rlFold: 'REINFORCE, PPO i kara KL',
-  rlFoldText: 'InstructGPT użył algorytmu PPO i neuronowego modelu nagrody. Tu działa prostszy krewny: REINFORCE z ruchomą linią bazową i nagroda liczona z worka tokenów i długości. Kara KL za każdy token trzyma model blisko wag po SFT, a nagroda jest przycięta, żeby model nie przesadził w pogoni za nią. Symulowany oznaczający układa 200 par według ustalonej kolejności klas i zastępuje ludzi. Model nagrody widzi tylko wybory.',
+  rlFoldText: 'InstructGPT użył algorytmu PPO i neuronowego modelu nagrody. Tu działa prostszy krewny: REINFORCE z ruchomą linią bazową i nagroda liczona z worka tokenów i długości. Kara KL za każdy token (współczynnik {kl}) trzyma model blisko wag po SFT, a nagroda jest wystandaryzowana i przycięta, żeby model nie przesadził w pogoni za nią. Wagi modelu nagrody maleją po każdej epoce (mnożnik {decay}), więc rzadkie tokeny, na przykład nazwa jednego kraju, tracą znaczenie. Symulowany oznaczający układa 200 par według ustalonej kolejności klas i zastępuje ludzi. Model nagrody widzi tylko wybory.',
   rlRewardRow: 'Model nagrody',
   rlRewardTile: 'Worek tokenów',
   rlRewardText: 'Nagroda zależy od użytych tokenów i długości odpowiedzi, nie od ich sensu.',
@@ -832,6 +873,7 @@ const T = {
   srcHelpOdwrocony: 'Symulacja: najwyżej zbywanie, najniżej pełna odpowiedź.',
   srcHelpWlasne: 'Sam oznaczasz pary. Potrzeba co najmniej {min} wyborów innych niż „równe”.',
   ownNeedSft: 'Pary pojawią się po SFT.',
+  ownBelow: 'Pary oznaczasz niżej, w karcie „Oznaczanie i model nagrody”.',
   ownPairTitle: 'Która odpowiedź jest lepsza?',
   ownPrompt: 'Prompt: {prompt}',
   ownA: 'Lepsza A',
@@ -839,7 +881,8 @@ const T = {
   ownEqual: 'Równe',
   ownCount: 'Wybory: {n} z {min}. „Równe”: {eq}.',
   ownNeedMore: 'RL ruszy po {min} wyborach innych niż „równe”. Masz {n}.',
-  rewardTitle: 'Czego nauczył się model nagrody',
+  rewardTitle: 'Oznaczanie i model nagrody',
+  rewardLearned: 'Czego nauczył się model nagrody',
   rewardEmpty: 'Tokeny pojawią się, gdy powstanie model nagrody.',
   rewardPlus: 'Na plus',
   rewardMinus: 'Na minus',
@@ -863,6 +906,8 @@ const T = {
   cmpRun: 'Porównaj',
   cmpPipeline: 'Uruchom cały potok',
   cmpPipelineHint: 'Trenuje po kolei etapy, których jeszcze nie ma, z oznaczającym „rzeczowy”.',
+  cmpPipelineBusy: 'Trening trwa. Postęp widać na pasku u góry.',
+  cmpPipelineDone: 'Wszystkie etapy są wytrenowane. Reset w widoku etapu pozwala zacząć od nowa.',
   cmpMetricsTitle: 'Metryki na 12 promptach',
   cmpMetricsNote: '{n} próbek na prompt, temperatura {temp}. Wiersze „ukryte” to prompty nieobecne w danych SFT i RL.',
   cmpGroupTrained: 'znane',
@@ -1076,6 +1121,7 @@ const FIXTURES = [
   { prompt: 'francji', generated: 'Stolicą Francji jest Paryż . ⏎ Jaka', cls: 'pozadana' },
   { prompt: 'francji', generated: 'Chyba Paryż . <koniec>', cls: 'zdawkowa' },
   { prompt: 'francji', generated: 'Sprawdź to sam . <koniec>', cls: 'zbywajaca' },
+  { prompt: 'francji', generated: 'sprawdź TO sam . <koniec>', cls: 'zbywajaca' },
   { prompt: 'francji', generated: 'Stolicą Hiszpanii jest Madryt . <koniec>', cls: 'bledna' },
   { prompt: 'francji', generated: 'Stolicą Hiszpanii jest Madryt . ⏎', cls: 'kontynuacja' },
   { prompt: 'francji', generated: 'Jaka jest stolica Hiszpanii ? ⏎', cls: 'kontynuacja' },
@@ -1106,7 +1152,8 @@ const App = {
   live: { count: 0 },
   loop: { gen: null, ctx: null, kind: null, key: null, paused: false, scheduled: false, half: false, activeMs: 0, lastRender: 0, lastToggle: -1e9, onDone: null, channel: null, cfgOverride: null, lrOverride: null, startCount: 0, experimentSteps: 0, sliceMs: 0 },
   next: { defaultText: 'Jaka jest stolica', text: '', appended: [], sampled: '', temperature: 1, checkpoint: 'random', movedNote: '', work: null },
-  bench: { defaultText: 'Jaka jest stolica Francji?', text: '', parsed: null, columns: {} },
+  bench: { defaultText: 'Jaka jest stolica Francji?', text: '', parsed: null, columns: {}, freeMode: false },
+  neighbours: { checkpoint: 'auto' },
   rl: { source: 'rzeczowy', own: [], equalCount: 0, ownPair: null, ownReward: null, reward: null, simPairs: 0, mainLabeller: '' },
   miniAt: 0,
   corpusGenre: 'all',
@@ -1353,7 +1400,7 @@ function classifyOutput(expect, tokens, data) {
   const { segment, end } = splitSegment(tokens);
   if (segment.length === 0 || segment.includes(TOKEN_UNK)) return 'inne';
   const text = segment.join(' ');
-  if (DISMISSIVE_PHRASES.includes(text)) return 'zbywajaca';
+  if (DISMISSIVE_PHRASES.some((phrase) => eqi(phrase, text))) return 'zbywajaca';
   if (expect) {
     const met = meetsExpectation(segment, expect);
     if (met === 'complete') return 'pozadana';
@@ -1877,8 +1924,7 @@ function t(key, vars) {
 }
 function qs(selector, root) { return (root || document).querySelector(selector); }
 function qsa(selector, root) { return Array.from((root || document).querySelectorAll(selector)); }
-function ic(name) { return `<i data-lucide="${name}" class="ic" aria-hidden="true"></i>`; }
-function icons(root) { if (window.lucide) window.lucide.createIcons({ root: root || document }); }
+function ic(name) { return `<svg class="ic" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name] || ''}</svg>`; }
 function setText(el, text) { if (el && el.textContent !== text) el.textContent = text; }
 function setAttr(el, name, value) { if (el && el.getAttribute(name) !== String(value)) el.setAttribute(name, String(value)); }
 function fmt(value, digits) {
@@ -2343,6 +2389,11 @@ function setSource(source) {
 }
 
 // ─── Helpers: bench ───
+function benchColumnState(key) {
+  if (App.bench.columns[key]) return 'ready';
+  return App.stages[key].status === 'done' ? 'no-prompt' : 'untrained';
+}
+
 function refreshBench() {
   const bench = App.bench;
   bench.parsed = parsePrompt(bench.text);
@@ -2411,6 +2462,8 @@ function nearestNeighbours(token, params) {
   const scored = [];
   for (let i = 0; i < vocab.list.length; i++) {
     if (i === id || i === vocab.nl || i === vocab.end || i === vocab.unk) continue;
+    // Tokens seen only in SFT data get no pretraining updates, so their vectors would be noise here.
+    if (!App.data.rawTokens.has(vocab.list[i])) continue;
     const off = App.shape.embed + i * dim;
     let dot = 0; let normB = 0;
     for (let d = 0; d < dim; d++) { dot += params[base + d] * params[off + d]; normB += params[off + d] * params[off + d]; }
@@ -2478,6 +2531,8 @@ function probeReset() {
   App.next.temperature = 1;
   App.next.movedNote = '';
   App.bench.text = App.bench.defaultText;
+  App.bench.freeMode = false;
+  App.neighbours.checkpoint = 'auto';
   App.rl.source = 'rzeczowy';
   initEngine(App.seed);
   refreshBench();
@@ -2697,9 +2752,12 @@ function probeChecks() {
       ['data-step', 'data-loss-initial', 'data-loss', 'data-val-loss-initial', 'data-val-loss', 'data-weights-hash', 'data-longest-task-ms'].forEach((name) => need(el, name));
       if (!isBusy()) { need(el, 'data-step', stage.step); need(el, 'data-weights-hash', stage.hash); }
       const col = qs(`[data-bench-column="${key}"]`);
-      need(col, 'data-state', App.bench.columns[key] ? 'ready' : 'untrained');
+      need(col, 'data-state', benchColumnState(key));
       ['data-context', 'data-output', 'data-class'].forEach((name) => need(col, name));
     });
+    const select = qs('#cmp-select');
+    const shown = App.bench.freeMode ? App.bench.text : select.options[select.selectedIndex].textContent;
+    if (shown !== App.bench.text) problems.push(`lista pokazuje „${shown}”, a porównanie używa „${App.bench.text}”`);
     const metrics = qs('[data-metrics]');
     need(metrics, 'data-json');
     if (metrics) { try { JSON.parse(metrics.getAttribute('data-json')); } catch (err) { problems.push('data-json nie jest JSON-em'); } }
@@ -2994,6 +3052,7 @@ function renderChrome() {
   seedInput.disabled = isBusy();
   setText(qs('#seed-error'), App.seedError || '');
   renderTrainBar();
+  renderPipelineButton();
 }
 
 function renderProgressHero(key) {
@@ -3210,6 +3269,21 @@ function fillSampleList(box, samples) {
   });
 }
 
+function setBenchEmpty(col, key) {
+  const empty = qs('.bench-empty', col);
+  const state = benchColumnState(key);
+  empty.hidden = state === 'ready';
+  setText(empty, t(state === 'no-prompt' ? 'sameNoPrompt' : 'sameUntrained'));
+}
+
+function renderPipelineButton() {
+  const btn = qs('#pipeline-btn');
+  const allDone = STAGE_ORDER.every((key) => App.stages[key].status === 'done');
+  const running = isBusy() && !App.loop.paused;
+  btn.disabled = allDone || running;
+  setText(qs('#pipeline-hint'), t(allDone ? 'cmpPipelineDone' : (running ? 'cmpPipelineBusy' : 'cmpPipelineHint')));
+}
+
 function renderBench() {
   const bench = App.bench;
   const parsed = bench.parsed || parsePrompt(bench.text);
@@ -3218,7 +3292,7 @@ function renderBench() {
     const samples = bench.columns[key];
     const col = qs(`[data-bench-column="${key}"]`);
     if (!col) return;
-    setAttr(col, 'data-state', samples ? 'ready' : 'untrained');
+    setAttr(col, 'data-state', benchColumnState(key));
     setAttr(col, 'data-context', JSON.stringify(ctxTokens));
     setAttr(col, 'data-output', samples ? samples[0].tokens.join(' ') : '');
     setAttr(col, 'data-class', samples ? samples[0].cls : '');
@@ -3226,7 +3300,7 @@ function renderBench() {
     const list = qs('ul', col);
     if (samples) fillSampleList(list, samples);
     else list.textContent = '';
-    qs('.bench-empty', col).hidden = !!samples;
+    setBenchEmpty(col, key);
   });
   qsa('[data-same-column]').forEach((col) => {
     const key = col.dataset.sameColumn;
@@ -3234,9 +3308,20 @@ function renderBench() {
     const list = qs('ul', col);
     if (samples) fillSampleList(list, samples);
     else list.textContent = '';
-    qs('.bench-empty', col).hidden = !!samples;
+    setBenchEmpty(col, key);
   });
-  qsa('[data-same-prompt]').forEach((el) => setText(el, bench.text));
+  const shownPrompt = parsed.empty ? t('samePromptEmpty') : parsed.value;
+  qsa('[data-same-prompt]').forEach((el) => setText(el, shownPrompt));
+  setText(qs('#cmp-current'), t('cmpCurrent', { prompt: shownPrompt }));
+  const select = qs('#cmp-select');
+  const match = EVAL_PROMPTS.find((p) => p.text === bench.text);
+  select.value = bench.freeMode || !match ? 'free' : match.id;
+  const anySamples = Object.keys(bench.columns).length > 0;
+  qs('#view-porownanie [data-action="reroll"]').disabled = !anySamples;
+  qsa('[data-same-card]').forEach((card) => {
+    const keys = card.dataset.sameCard.split(',');
+    qs('[data-action="reroll"]', card).disabled = !keys.some((key) => bench.columns[key]);
+  });
 
   const messages = [];
   if (parsed.empty) messages.push(t('promptEmpty'));
@@ -3248,9 +3333,8 @@ function renderBench() {
   qs('#cmp-messages').classList.toggle('is-error', parsed.empty);
   const ctxBox = qs('#cmp-tokens');
   renderTokenChips(ctxBox, parsed.raw.concat([TOKEN_NL]), parsed.empty ? [] : parsed.ids.concat([App.data.vocab.nl]), CONTEXT_LEN, Infinity);
-  qs('#cmp-free-wrap').hidden = qs('#cmp-select').value !== 'free';
-  const parsedFree = qs('#cmp-select').value === 'free';
-  setAttr(qs('#cmp-free'), 'aria-invalid', parsedFree && parsed.empty);
+  qs('#cmp-free-wrap').hidden = select.value !== 'free';
+  setAttr(qs('#cmp-free'), 'aria-invalid', select.value === 'free' && parsed.empty);
 }
 
 function renderMetrics() {
@@ -3337,6 +3421,7 @@ function renderRl() {
     btn.disabled = isBusy();
   });
   setText(qs('#src-help'), t(LABELLER_HELP_KEYS[rl.source], { min: OWN_PAIRS_MIN }));
+  setText(qs('#own-below'), rl.source === 'wlasne' ? t('ownBelow') : '');
   const ownBox = qs('#own-box');
   ownBox.hidden = rl.source !== 'wlasne';
   const pair = rl.ownPair;
@@ -3380,9 +3465,18 @@ function renderRl() {
 // ─── Render: neighbours and mini demos ───
 function renderNeighbours() {
   const select = qs('#neigh-token');
-  const newest = STAGE_ORDER.slice().reverse().find((key) => checkpointParams(key));
-  const params = newest ? checkpointParams(newest) : App.randomParams;
-  setText(qs('#neigh-source'), t('neighSource', { name: t(newest ? { pretrain: 'ckPretrain', sft: 'ckSft', rl: 'ckRl' }[newest] : 'ckRandom') }));
+  const trained = !!checkpointParams('pretrain');
+  const choice = App.neighbours.checkpoint === 'auto' ? (trained ? 'pretrain' : 'random') : App.neighbours.checkpoint;
+  const active = choice === 'pretrain' && trained ? 'pretrain' : 'random';
+  const params = active === 'pretrain' ? checkpointParams('pretrain') : App.randomParams;
+  const card = qs('#neigh-card');
+  setAttr(card, 'data-checkpoint', active);
+  qsa('[data-action="neigh-checkpoint"]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.ck === active);
+    btn.setAttribute('aria-pressed', btn.dataset.ck === active);
+    btn.disabled = btn.dataset.ck === 'pretrain' && !trained;
+  });
+  setText(qs('#neigh-reason'), trained ? '' : t('neighAfterLocked'));
   const box = qs('#neigh-list');
   box.textContent = '';
   nearestNeighbours(select.value, params).forEach((item) => {
@@ -3578,7 +3672,7 @@ function sameCard(keys, tone) {
       <p class="edu-small bench-empty">${t('sameUntrained')}</p>
       <ul class="samples"></ul>
     </div>`).join('');
-  return `<div class="card">${cardHead('repeat', tone, t('sameTitle'))}
+  return `<div class="card" data-same-card="${keys.join(',')}">${cardHead('repeat', tone, t('sameTitle'))}
     <div class="card-body" data-nobudget>
       <p class="prompt-line" data-same-prompt></p>
       ${columns}
@@ -3679,10 +3773,12 @@ function viewPretrainingHtml() {
         <div class="row-head"><span class="badge tone-blue">${ic('network')}</span><h3>${t('preMemRow')}</h3></div>
         <div class="tile"><span class="badge tone-blue">${ic('git-compare')}</span><h4>${t('preMemTile')}</h4><p>${t('preMemText')}</p></div>
       </div>
-      <div class="card lab" data-nobudget><div class="card-head"><span class="tile-h"><span class="badge tone-blue">${ic('users')}</span><h3>${t('neighTitle')}</h3></span><span class="edu-small" id="neigh-source"></span></div>
+      <div class="card lab" id="neigh-card" data-checkpoint="random" data-nobudget><div class="card-head"><span class="tile-h"><span class="badge tone-blue">${ic('users')}</span><h3>${t('neighTitle')}</h3></span></div>
         <div class="card-body">
+          <div class="edu-seg wrap-seg" role="group" aria-label="${t('neighTitle')}"><button type="button" data-action="neigh-checkpoint" data-ck="random">${t('neighBefore')}</button><button type="button" data-action="neigh-checkpoint" data-ck="pretrain">${t('neighAfter')}</button></div>
+          <p class="reason" id="neigh-reason"></p>
           <div class="field"><label for="neigh-token">${t('neighToken')}</label>
-          <select class="input" id="neigh-token">${['Polski', 'Francji', 'Paryż', 'Kot', 'Pies', 'jabłko', 'czerwony'].map((tok) => `<option>${tok}</option>`).join('')}</select></div>
+          <select class="input" id="neigh-token">${['Paryż', 'Warszawa', 'Polski', 'Francji', 'Kot', 'Pies', 'jabłko', 'czerwony'].map((tok) => `<option>${tok}</option>`).join('')}</select></div>
           <div class="tokens" id="neigh-list"></div>
           <p class="edu-overline log-head">${t('topTitle')}</p>
           <div class="log log-short" id="top-pretrain"></div>
@@ -3741,12 +3837,35 @@ function viewRlHtml() {
       <div class="concept">
         <div class="row-head"><span class="badge tone-green">${ic('scale')}</span><h3>${t('rlRow')}</h3></div>
         ${chainHtml(['rlChain1', 'rlChain2', 'rlChain3', 'rlChain4'])}
-        ${foldHtml('rlFold', 'rlFoldText')}
+        ${foldHtml('rlFold', 'rlFoldText', { kl: String(TRAIN.rl.klBeta).replace('.', ','), decay: String(TRAIN.rl.rewardDecay).replace('.', ',') })}
       </div>
       <div class="card lab" data-stage="rl" data-rl data-nobudget><div class="card-body">
         <div class="field"><span class="label" id="src-label">${t('rlSource')}</span>
           <div class="edu-seg wrap-seg" role="group" aria-labelledby="src-label">${sources}</div>
           <p class="reason" id="src-help"></p></div>
+        <p class="reason" id="own-below"></p>
+        ${trainControls('rl')}
+        <div class="stats">
+          <span><b id="stat-step-rl"></b> ${t('stepLabel')}</span>
+          <span><b id="stat-reward-rl"></b> ${t('chartReward')}</span>
+          <span><b id="stat-pref-rl"></b> ${t('chartPreferred')}</span>
+        </div>
+        <div class="chart-pair">
+          <div><p class="edu-overline">${t('chartReward')}</p><canvas class="chart chart-small" id="chart-rl-reward" role="img" aria-label="${t('chartAriaRl')}"></canvas></div>
+          <div><p class="edu-overline">${t('chartPreferred')}</p><canvas class="chart chart-small" id="chart-rl-pref" role="img" aria-label="${t('chartAriaRl')}"></canvas></div>
+        </div>
+        <p class="edu-small" id="chart-summary-rl"></p>
+        <p class="edu-small" id="rl-metric"></p>
+        <p class="edu-small" id="rl-main-labeller"></p>
+        ${logHtml('rl')}
+      </div></div>
+    </div>
+    <div class="split">
+      <div class="concept">
+        <div class="row-head"><span class="badge tone-green">${ic('award')}</span><h3>${t('rlRewardRow')}</h3></div>
+        <div class="tile"><span class="badge tone-green">${ic('package-open')}</span><h4>${t('rlRewardTile')}</h4><p>${t('rlRewardText')}</p></div>
+      </div>
+      <div class="card lab" data-nobudget><div class="card-head"><span class="tile-h"><span class="badge tone-green">${ic('list-checks')}</span><h3>${t('rewardTitle')}</h3></span></div><div class="card-body">
         <div id="own-box" hidden>
           <p class="reason" id="own-need-sft"></p>
           <div id="own-pair">
@@ -3760,30 +3879,9 @@ function viewRlHtml() {
           </div>
           <p class="edu-small" id="own-count"></p>
         </div>
-        ${trainControls('rl')}
-        <div class="stats">
-          <span><b id="stat-step-rl"></b> ${t('stepLabel')}</span>
-          <span><b id="stat-reward-rl"></b> ${t('chartReward')}</span>
-          <span><b id="stat-pref-rl"></b> ${t('chartPreferred')}</span>
-        </div>
-        <p class="edu-overline">${t('chartReward')}</p>
-        <canvas class="chart chart-small" id="chart-rl-reward" role="img" aria-label="${t('chartAriaRl')}"></canvas>
-        <p class="edu-overline">${t('chartPreferred')}</p>
-        <canvas class="chart chart-small" id="chart-rl-pref" role="img" aria-label="${t('chartAriaRl')}"></canvas>
-        <p class="edu-small" id="chart-summary-rl"></p>
-        <p class="edu-small" id="rl-metric"></p>
-        <p class="edu-small" id="rl-main-labeller"></p>
-      </div></div>
-    </div>
-    <div class="split">
-      <div class="concept">
-        <div class="row-head"><span class="badge tone-green">${ic('award')}</span><h3>${t('rlRewardRow')}</h3></div>
-        <div class="tile"><span class="badge tone-green">${ic('package-open')}</span><h4>${t('rlRewardTile')}</h4><p>${t('rlRewardText')}</p></div>
-      </div>
-      <div class="card lab" data-nobudget><div class="card-head"><span class="tile-h"><span class="badge tone-green">${ic('list-checks')}</span><h3>${t('rewardTitle')}</h3></span></div><div class="card-body">
+        <p class="edu-overline log-head">${t('rewardLearned')}</p>
         <p class="edu-small" id="reward-empty"></p>
         <div id="reward-tokens"></div>
-        ${logHtml('rl')}
       </div></div>
     </div>
   </div></section>
@@ -3795,7 +3893,7 @@ function viewRlHtml() {
 }
 
 function viewPorownanieHtml() {
-  const options = EVAL_PROMPTS.map((p) => `<option value="${p.id}">${p.text}</option>`).join('');
+  const options = EVAL_PROMPTS.map((p) => `<option value="${p.id}"${p.text === App.bench.defaultText ? ' selected' : ''}>${p.text}</option>`).join('');
   const cols = [['pretrain', 'tone-blue', 'book-open'], ['sft', 'tone-yellow', 'graduation-cap'], ['rl', 'tone-green', 'thumbs-up']].map(([key, tone, icon]) => `
     <div class="card" data-bench-column="${key}" data-state="untrained" data-context="[]" data-output="" data-class="">
       ${cardHead(icon, tone, t(COLUMN_KEYS[key]))}
@@ -3814,7 +3912,8 @@ function viewPorownanieHtml() {
         <button type="button" class="btn-ghost" data-action="reroll">${t('benchReroll')}</button>
         <button type="button" class="edu-btn" id="pipeline-btn" data-action="pipeline">${t('cmpPipeline')}</button>
       </div>
-      <p class="edu-small">${t('cmpPipelineHint')}</p>
+      <p class="edu-small" id="pipeline-hint"></p>
+      <p class="prompt-line" id="cmp-current"></p>
       <p class="reason" id="cmp-messages" aria-live="polite"></p>
       <div class="tokens" id="cmp-tokens"></div>
     </div></div>
@@ -3933,6 +4032,7 @@ const ACTIONS = {
   source: (el) => setSource(el.dataset.src),
   own: (el) => labelOwn(el.dataset.choice),
   'mini-next': () => { App.miniAt += 7; renderMini(); },
+  'neigh-checkpoint': (el) => { App.neighbours.checkpoint = el.dataset.ck; renderNeighbours(); },
   'corpus-genre': (el) => { App.corpusGenre = el.dataset.genre; renderCorpus(); },
   'quiz-check': () => {
     if (App.quiz.selected === null) return;
@@ -4005,8 +4105,9 @@ function bindListeners() {
   document.addEventListener('change', (event) => {
     const id = event.target.id;
     if (id === 'cmp-select') {
-      qs('#cmp-free-wrap').hidden = event.target.value !== 'free';
-      if (event.target.value !== 'free') applyComparePrompt();
+      App.bench.freeMode = event.target.value === 'free';
+      qs('#cmp-free-wrap').hidden = !App.bench.freeMode;
+      if (!App.bench.freeMode) applyComparePrompt();
     } else if (id === 'cmp-free') {
       const parsed = parsePrompt(event.target.value);
       if (parsed.trimmed) event.target.value = parsed.value;
@@ -4107,8 +4208,6 @@ function init() {
   setView(window.location.hash.slice(1) || 'model');
   renderAll();
   renderBudgets();
-  icons();
-  window.addEventListener('load', () => icons());
 
   // ─── Reveal ───
   const FONT_WAIT_MS = 1500;
