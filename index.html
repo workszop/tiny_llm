@@ -215,7 +215,7 @@
 body.edu { background: var(--paper); color: var(--ink); font-family: var(--font-sans); }
 
 /* ─── App: tokens that are not in the edustyl set ─── */
-:root { --gutter: clamp(16px, 4vw, 72px); }
+:root { --gutter: clamp(16px, 4vw, 72px); --header-h: 73px; }
 
 /* ─── Base ─── */
 html, body { margin: 0; padding: 0; }
@@ -252,7 +252,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .seed-control input { width: 84px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
 .small-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink); }
 
-.train-bar { position: sticky; top: 73px; z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px var(--gutter); background: var(--ink); color: var(--paper); }
+.train-bar { position: sticky; top: var(--header-h); z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px var(--gutter); background: var(--ink); color: var(--paper); }
 .train-bar .train-label { font-family: var(--font-display); font-weight: 600; }
 .train-bar .train-eta { color: var(--yellow); font-family: var(--font-mono); font-size: 12px; }
 .train-track { flex: 1; min-width: 100px; height: 8px; background: var(--ink-2); border-radius: var(--r-pill); overflow: hidden; }
@@ -465,7 +465,6 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
   .chart-pair { grid-template-columns: minmax(0, 1fr); }
   .opt input { width: 22px; height: 22px; }
   .train-bar { padding: 4px 16px; gap: 2px 10px; }
-  .train-bar { top: 53px; }
   .sec { padding: 28px 0 36px; }
   .page-head { padding: 24px 16px 20px; }
   .split, .pair, .wide-tiles, .bench-grid { grid-template-columns: minmax(0, 1fr); }
@@ -482,6 +481,32 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
+/* ─── Notices, samples, step pages ─── */
+.notice { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; border-radius: var(--r-md); padding: 14px 20px; }
+.notice p { margin: 0; flex: 1 1 20rem; font-weight: 500; }
+.btn-ink { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; background: var(--ink); color: var(--paper); border: none; border-radius: var(--r-pill); font-family: var(--font-display); font-weight: 600; text-decoration: none; transition: background-color .12s; }
+.btn-ink:hover:not(:disabled) { background: var(--ink-2); }
+#views a.btn-ink { color: var(--paper); }
+.chain .link.on { background: var(--yellow); color: var(--on-primary); border-color: var(--yellow); }
+.data-sample { display: grid; gap: 8px; margin-top: 10px; min-width: 0; }
+.data-sample p { margin: 0; }
+.sample-list, .sample-prompts { max-height: 340px; overflow-y: auto; }
+.pair-line { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; min-width: 0; }
+.step-link { align-self: center; }
+.step-caption { display: block; background: var(--paper-2); border-radius: var(--r-sm); padding: 10px 14px; font-weight: 500; color: var(--ink); min-height: 66px; overflow-wrap: anywhere; }
+.bar-static { cursor: default; }
+.bar-static:hover { background: transparent; }
+.bar.is-target { background: var(--yellow); color: var(--yellow-ink); }
+.bar.is-target:hover { background: var(--yellow); }
+.bar.is-target .bar-track { background: var(--paper); }
+.demo-box { display: grid; gap: 6px; justify-items: start; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--r-md); min-width: 0; }
+.demo-box p { margin: 0; }
+.rl-values { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; margin: 6px 0 0; font-size: var(--body-sm); }
+.rl-values dt { color: var(--ink-2); }
+.rl-values dd { margin: 0; font-family: var(--font-mono); text-align: right; color: var(--ink); }
+.hash-line { overflow-wrap: anywhere; color: var(--ink-3); }
+.pair-opt .edu-chip { justify-self: start; }
+
 </style>
 </head>
 <body class="edu">
@@ -494,7 +519,7 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
   <div class="stepper">
     <div class="stepper-group"><span class="edu-chip" id="step-pretrain"></span><span class="edu-chip" id="step-sft"></span><span class="edu-chip" id="step-rl"></span></div>
     <div class="stepper-progress"><span class="small-label" id="visited-label"></span><span class="small-label" id="visited-count"></span>
-      <div class="progress-track" id="visited-track" role="progressbar" aria-labelledby="visited-label" aria-valuemin="0" aria-valuemax="8" aria-valuenow="1"><span id="visited-fill"></span></div></div>
+      <div class="progress-track" id="visited-track" role="progressbar" aria-labelledby="visited-label" aria-valuemin="0" aria-valuemax="11" aria-valuenow="1"><span id="visited-fill"></span></div></div>
     <div class="seed-control"><label class="small-label" id="seed-label" for="seed-input"></label><input id="seed-input" type="number" min="1" max="9999" step="1" aria-describedby="seed-hint"></div>
   </div>
   <div class="visually-hidden" id="seed-hint"></div>
@@ -532,6 +557,8 @@ const SLICE_MS = 12;
 const PLAUSIBLE_SHARE = 0.8;
 const OWN_PAIRS_MIN = 8;
 const SIMULATED_PAIRS = 200;
+const SAMPLE_SIZE = 5;
+const AUTOPLAY_MS = 1600;
 
 const TRAIN = {
   pretrain: { steps: 3000, batch: 16, lr: 0.003, lrFinal: 0.0003, clip: 5 },
@@ -673,6 +700,9 @@ const T = {
   navDane: 'Dane',
   navPrawda: 'Co jest prawdziwe',
   navQuiz: 'Sprawdź się',
+  navKrokPretraining: 'Krok: pretraining',
+  navKrokSft: 'Krok: SFT',
+  navKrokRl: 'Krok: RL',
   skipLink: 'Przejdź do treści',
 
   appTitle: 'Jak uczy się model językowy',
@@ -723,6 +753,7 @@ const T = {
   chartAriaRl: 'Wykres średniej nagrody i udziału odpowiedzi pożądanych',
   logTitle: 'Próbki w trakcie treningu',
   logEmpty: 'Próbki pojawią się po starcie treningu.',
+  topEmpty: 'Typy pojawią się po starcie treningu.',
   logStep: 'krok {step}',
   topTitle: 'Co model typuje po „Stolicą Francji jest”',
 
@@ -817,7 +848,7 @@ const T = {
   preDataTitle: 'Jakie dane',
   preDataText: 'Zwykły tekst z sieci i książek. Nikt go nie oznacza, tylko filtruje. Dla GPT-3: 300 mld tokenów.',
   preExpTitle: 'Złe dane: pomieszany korpus',
-  preExpText: 'Te same tokeny w losowej kolejności. Bez porządku nie ma czego się nauczyć.',
+  preExpText: 'Te same tokeny w losowej kolejności.',
   preExpBtn: 'Uruchom eksperyment',
   preExpResult: 'Strata walidacyjna: pomieszany korpus {bad}, główny trening {main}.',
   preExpSample: 'Próbka z pomieszanego korpusu: {sample}',
@@ -1055,12 +1086,127 @@ const T = {
   q8e: 'RL goni nagrodę, także złą. Sprawdzisz to w eksperymencie z odwróconym oznaczającym.',
 
   helpTitle: 'Skróty klawiszowe',
-  helpViews: 'Klawisze 1-8: przejście do widoku',
+  helpViews: 'Klawisze 1-8: główne widoki; 9, 0 i -: strony z krokiem treningu',
+  helpSteps: 'Na stronach z krokiem: N następny, B poprzedni, A autoodtwarzanie',
   helpTrain: 'T: start lub pauza treningu w bieżącym etapie',
   helpNext: 'N: następny token w widoku Model',
   helpHelp: '?: ta pomoc, Esc: zamknięcie',
   helpOpen: 'Skróty (?)',
   helpClose: 'Zamknij',
+
+  noticeNeed: 'Ten model działa w Twojej przeglądarce, więc najpierw trzeba go wytrenować. Brakuje etapu: {name}.',
+  noticeRunning: 'Trwa trening: {name}. Wyniki zobaczysz tu po jego końcu.',
+  noticePaused: 'Trening wstrzymany: {name}. Wyniki zobaczysz tu po jego końcu.',
+  noticeStepRandom: 'Tu liczą się losowe wagi. Po treningu w przeglądarce zobaczysz też krok na wytrenowanym modelu.',
+  noticeGo: 'Przejdź do: {name}',
+  noticeTrain: 'Trenuj teraz',
+
+  sampleTitle: 'Próbka danych',
+  sampleCount: 'Pokazuję {shown} z {total}: {what}.',
+  sampleWhatCorpus: 'linii korpusu',
+  sampleWhatDemos: 'przykładów SFT',
+  sampleWhatPairsRun: 'par z ostatniego treningu RL',
+  sampleWhatPairsLive: 'par: tych {total} zbierze trening RL, tu losowane teraz z modelu po SFT',
+  samplePrompts: 'Pokazuję {shown} z {total}: promptów bez ludzkich etykiet.',
+  samplePairsNone: 'Pary odpowiedzi z etykietami pojawią się po SFT, bo porównuje się odpowiedzi tego modelu.',
+  sampleLabeller: 'Etykiety: symulowany oznaczający „{name}”.',
+  sampleWin: 'wygrana',
+  sampleLose: 'przegrana',
+  sampleReroll: 'Losuj inne',
+  stepLink: 'Zobacz jeden krok treningu',
+
+  krokPreHead: 'Jeden krok pretrainingu',
+  krokPreOver: 'Krok po kroku',
+  krokPreLead: 'Jeden prawdziwy przykład z korpusu i jedna aktualizacja wag, na kopii modelu.',
+  krokSftHead: 'Jeden krok SFT',
+  krokSftOver: 'Krok po kroku',
+  krokSftLead: 'Ten sam mechanizm, ale celem jest token ze wzorcowej odpowiedzi.',
+  krokRlHead: 'Jeden krok RL',
+  krokRlOver: 'Krok po kroku',
+  krokRlLead: 'Model pisze dwie odpowiedzi, nagroda je ocenia, a kopia modelu przesuwa się ku lepszej.',
+  krokRow: 'Etapy jednego kroku',
+  phaseContext: 'Kontekst: ostatnie tokeny przed celem.',
+  phasePredict: 'Model liczy szanse następnego tokenu.',
+  phaseTarget: 'Dane mówią, który token był właściwy.',
+  phaseLoss: 'Strata rośnie, gdy szansa celu jest mała.',
+  phaseUpdate: 'Gradient i Adam przesuwają wagi kopii.',
+  phaseAfter: 'Ta sama prognoza po aktualizacji.',
+  phasePair: 'Model pisze dwie różne odpowiedzi.',
+  phaseScore: 'Model nagrody ocenia każdą z nich.',
+  phaseRlUpdate: 'Odpowiedź lepsza od średniej zyskuje szansę, gorsza traci.',
+  phaseShift: 'Szanse obu odpowiedzi po aktualizacji.',
+  krokFoldPre: 'Co tu jest uproszczone',
+  krokFoldPreText: 'Trening używa paczki {batch} przykładów, a tu jest jeden, żeby ruch był widoczny. Tempo uczenia to startowa wartość etapu: {lr}. Stan Adama należy do tej kopii, więc kolejne kroki kumulują się, a główny model pozostaje nietknięty.',
+  krokFoldSftText: 'Trening używa paczki {batch} przykładów, a tu jest jeden. Cel zawsze pochodzi z odpowiedzi, a kontekstem jest polecenie i początek odpowiedzi. Główne wagi pozostają nietknięte.',
+  krokFoldRlText: 'Trening używa {batch} odpowiedzi w kroku, a tu są dwie, a linią bazową jest ich średnia. Nagroda to wynik modelu nagrody minus kara KL ze współczynnikiem {kl}. Główne wagi pozostają nietknięte.',
+  stepNext: 'Następny krok',
+  stepNextExample: 'Następny przykład',
+  stepBack: 'Poprzedni krok',
+  stepOther: 'Inny przykład',
+  stepRestart: 'Od początku',
+  stepPlay: 'Autoodtwarzanie',
+  stepStop: 'Zatrzymaj',
+  stepSourceLabel: 'Wagi startowe',
+  stepSrcRandom: 'losowe',
+  stepSrcPretrain: 'po pretrainingu',
+  stepSrcSft: 'po SFT',
+  stepSrcRl: 'po RL',
+  stepNeedsSft: 'Ten krok startuje z wag po pretrainingu, więc najpierw wytrenuj pretraining.',
+  stepNeedsRl: 'Ten krok startuje z wag po SFT, więc najpierw wytrenuj SFT.',
+  stepPreparing: 'Model nagrody uczy się na 60 symulowanych parach. To potrwa chwilę.',
+  stepPhaseOf: 'Etap {n} z {total}',
+  stepExampleOf: 'Przykład {n}, aktualizacje na kopii: {updates}',
+  stepHashes: 'Skrót kopii: {branch}. Skrót wag źródłowych, niezmienny: {main}.',
+  stepContextLabel: 'Kontekst',
+  stepBeforeLabel: 'Prognoza przed aktualizacją',
+  stepAfterLabel: 'Ta sama prognoza po aktualizacji',
+  stepNotYet: 'jeszcze nie policzono',
+  stepTargetLabel: 'Cel',
+  stepPLabel: 'Szansa celu',
+  stepLossLabel: 'Strata',
+  stepGradLabel: 'Norma gradientu',
+  stepChangedLabel: 'Zmienione wagi',
+  stepMoveLabel: 'Średnia zmiana wagi',
+  stepDemoLabel: 'Przykład SFT',
+  capContext: 'Model widzi {n} ostatnich tokenów. Nie zna jeszcze celu.',
+  capPredict: 'Najwyżej: {tok} ({p}). Tak model zgaduje przed zobaczeniem odpowiedzi.',
+  capTarget: 'Właściwy token to {tok}. Model dał mu {p}.',
+  capLoss: 'Strata = -ln({p}) = {loss}. Przy pewnej odpowiedzi byłaby bliska zera.',
+  capUpdate: 'Adam zmienił {changed} wag kopii, każdą o ułamek. Tempo uczenia: {lr}.',
+  capAfter: 'Szansa celu: {before} przed, {after} po. Strata: {lossBefore} przed, {lossAfter} po.',
+  capPair: 'Dwie próbki z kopii modelu na ten sam prompt.',
+  capScore: 'Wyższą nagrodę ma odpowiedź {name}. Linia bazowa to {base}.',
+  capRlUpdate: 'Gradient wzmacnia każdą odpowiedź według jej przewagi nad linią bazową. Zmienione wagi: {changed}.',
+  capShift: 'Szansa odpowiedzi {name}: {before} przed, {after} po.',
+  rlPromptLabel: 'Prompt',
+  rlAnswerA: 'Odpowiedź A',
+  rlAnswerB: 'Odpowiedź B',
+  rlRewardLabel: 'Nagroda',
+  rlScoreLabel: 'Wynik modelu nagrody',
+  rlKlLabel: 'Kara KL',
+  rlAdvLabel: 'Przewaga nad linią bazową',
+  rlProbBefore: 'Szansa całej odpowiedzi przed',
+  rlProbAfter: 'Szansa całej odpowiedzi po',
+  rlFirstBefore: 'Pierwszy token przed',
+  rlFirstAfter: 'Pierwszy token po',
+  rlBetter: 'lepsza',
+  rlKindMain: 'Model nagrody z głównego treningu RL, oznaczający: {name}.',
+  rlKindStandin: 'Zastępczy model nagrody: 60 par, oznaczający „rzeczowy”. Główny powstanie w treningu RL.',
+  diffTitle: 'Co się różni od pretrainingu',
+  diffColWhat: 'Cecha',
+  diffRowData: 'Dane',
+  diffRowTarget: 'Cel',
+  diffRowLr: 'Tempo uczenia',
+  diffRowStart: 'Start',
+  diffPreData: 'linie korpusu: {n}',
+  diffSftData: 'przykłady: {n}',
+  diffPreTarget: 'każdy token tekstu',
+  diffSftTarget: 'tylko tokeny odpowiedzi',
+  diffPreStart: 'losowe wagi',
+  diffSftStart: 'wagi po pretrainingu',
+  samePhases: 'Strata i krok są te same. Zmieniają się dane i cel.',
+  rlDiffTitle: 'Czym ten krok różni się od SFT',
+  rlDiffText: 'Nie ma tu wzorca. Sygnałem jest nagroda za odpowiedź napisaną przez sam model.',
 
   footer: 'Bez kluczy API i bez połączeń z modelami zewnętrznymi. Liczy tylko ta karta.',
   liveTrainingStart: '{name}: start treningu.',
@@ -1096,8 +1242,11 @@ const T = {
   probeSeconds: 'sekundy',
 };
 
-const VIEW_ORDER = ['model', 'pretraining', 'sft', 'rl', 'porownanie', 'dane', 'prawda', 'quiz'];
-const VIEW_NAV_KEYS = { model: 'navModel', pretraining: 'navPretraining', sft: 'navSft', rl: 'navRl', porownanie: 'navPorownanie', dane: 'navDane', prawda: 'navPrawda', quiz: 'navQuiz' };
+const VIEW_ORDER = ['model', 'pretraining', 'krok-pretraining', 'sft', 'krok-sft', 'rl', 'krok-rl', 'porownanie', 'dane', 'prawda', 'quiz'];
+const VIEW_NAV_KEYS = { model: 'navModel', pretraining: 'navPretraining', 'krok-pretraining': 'navKrokPretraining', sft: 'navSft', 'krok-sft': 'navKrokSft', rl: 'navRl', 'krok-rl': 'navKrokRl', porownanie: 'navPorownanie', dane: 'navDane', prawda: 'navPrawda', quiz: 'navQuiz' };
+const VIEW_KEYS = { 1: 'model', 2: 'pretraining', 3: 'sft', 4: 'rl', 5: 'porownanie', 6: 'dane', 7: 'prawda', 8: 'quiz', 9: 'krok-pretraining', 0: 'krok-sft', '-': 'krok-rl' };
+const STEP_VIEW = { pretrain: 'krok-pretraining', sft: 'krok-sft', rl: 'krok-rl' };
+const NOTICE_STAGES = { model: ['pretrain', 'sft', 'rl'], pretraining: ['pretrain'], 'krok-pretraining': ['pretrain'], sft: ['pretrain', 'sft'], 'krok-sft': ['pretrain'], rl: ['pretrain', 'sft', 'rl'], 'krok-rl': ['pretrain', 'sft'], porownanie: ['pretrain', 'sft', 'rl'], dane: ['pretrain', 'sft', 'rl'] };
 const STAGE_ORDER = ['pretrain', 'sft', 'rl'];
 const STAGE_VIEW = { pretrain: 'pretraining', sft: 'sft', rl: 'rl' };
 const STAGE_NAME_KEYS = { pretrain: 'stageNamePretrain', sft: 'stageNameSft', rl: 'stageNameRl' };
@@ -1154,7 +1303,13 @@ const App = {
   next: { defaultText: 'Jaka jest stolica', text: '', appended: [], sampled: '', temperature: 1, checkpoint: 'random', movedNote: '', work: null },
   bench: { defaultText: 'Jaka jest stolica Francji?', text: '', parsed: null, columns: {}, freeMode: false },
   neighbours: { checkpoint: 'auto' },
-  rl: { source: 'rzeczowy', own: [], equalCount: 0, ownPair: null, ownReward: null, reward: null, simPairs: 0, mainLabeller: '' },
+  steps: {},
+  stepWork: null,
+  stepGrad: null,
+  stepSets: null,
+  samples: {},
+  sampleRng: null,
+  rl: { source: 'rzeczowy', own: [], equalCount: 0, ownPair: null, ownReward: null, reward: null, simPairs: 0, mainLabeller: '', lastPairs: null },
   miniAt: 0,
   corpusGenre: 'all',
   quiz: { index: 0, selected: null, checked: false, score: 0, finished: false },
@@ -1736,7 +1891,8 @@ function* collectSimulatedPairs(ctx, labeller) {
   const vocab = data.vocab;
   const pairs = [];
   let attempts = 0;
-  while (pairs.length < SIMULATED_PAIRS && attempts < SIMULATED_PAIRS * 30) {
+  const wanted = ctx.pairsTarget || SIMULATED_PAIRS;
+  while (pairs.length < wanted && attempts < wanted * 30) {
     attempts++;
     const idx = Math.floor(rng() * data.rlPromptIds.length);
     const ctxIds = data.rlPromptIds[idx];
@@ -1749,7 +1905,7 @@ function* collectSimulatedPairs(ctx, labeller) {
     const rb = rank[classifyOutput(expect, b, data)];
     if (ra === rb) continue;
     const winA = ra > rb;
-    pairs.push({ win: rewardFeatures(winA ? a : b), lose: rewardFeatures(winA ? b : a), winTokens: winA ? a : b, loseTokens: winA ? b : a });
+    pairs.push({ prompt: data.rlPrompts[idx], win: rewardFeatures(winA ? a : b), lose: rewardFeatures(winA ? b : a), winTokens: winA ? a : b, loseTokens: winA ? b : a });
   }
   ctx.pairs = pairs;
 }
@@ -1836,13 +1992,13 @@ function* trainRl(ctx, onReport) {
   ctx.rewardHistory = rewardHistory;
 }
 
-function* evaluateMetrics(p, shape, data, seed, label) {
+function* evaluateMetrics(p, shape, data, seed, label, samplesPerPrompt) {
   const rng = makeRng(hashSeed(seed, 'eval' + label));
   const vocab = data.vocab;
   const work = makeWork(shape);
   const samples = [];
   for (const prompt of data.evalPrompts) {
-    for (let i = 0; i < METRIC_SAMPLES_PER_PROMPT; i++) {
+    for (let i = 0; i < (samplesPerPrompt || METRIC_SAMPLES_PER_PROMPT); i++) {
       const ids = sampleTokens(p, shape, work, prompt.ids, rng, METRIC_TEMPERATURE, vocab.nl, vocab.end, MAX_GEN_TOKENS);
       const tokens = ids.map((id) => vocab.list[id]);
       samples.push({ prompt: prompt.id, heldOut: prompt.heldOut, intent: prompt.intent, tokens, cls: classifyOutput(prompt, tokens, data) });
@@ -1878,7 +2034,7 @@ function* flowPretrain(env) {
   if (env.onCtx) env.onCtx(ctx);
   yield* trainPretrain(ctx, env.report);
   if (env.onPhase) env.onPhase('evaluating');
-  ctx.metrics = yield* evaluateMetrics(env.params, env.shape, env.data, env.seed, env.label || 'pre');
+  ctx.metrics = yield* evaluateMetrics(env.params, env.shape, env.data, env.seed, env.label || 'pre', env.cfg.metricSamples);
   return ctx;
 }
 
@@ -1887,12 +2043,12 @@ function* flowSft(env) {
   if (env.onCtx) env.onCtx(ctx);
   yield* trainSft(ctx, env.report);
   if (env.onPhase) env.onPhase('evaluating');
-  ctx.metrics = yield* evaluateMetrics(env.params, env.shape, env.data, env.seed, env.label || 'sft');
+  ctx.metrics = yield* evaluateMetrics(env.params, env.shape, env.data, env.seed, env.label || 'sft', env.cfg.metricSamples);
   return ctx;
 }
 
 function* flowRl(env) {
-  const ctx = { p: env.params, sftParams: env.sftParams, shape: env.shape, data: env.data, rng: makeRng(hashSeed(env.seed, env.stream || 'rl')), cfg: env.cfg, step: 0, pairs: env.pairs };
+  const ctx = { p: env.params, sftParams: env.sftParams, shape: env.shape, data: env.data, rng: makeRng(hashSeed(env.seed, env.stream || 'rl')), cfg: env.cfg, step: 0, pairs: env.pairs, pairsTarget: env.cfg.pairsTarget };
   if (env.onCtx) env.onCtx(ctx);
   if (!ctx.pairs) {
     if (env.onPhase) env.onPhase('collecting');
@@ -1903,7 +2059,7 @@ function* flowRl(env) {
   if (env.onPhase) env.onPhase('training');
   yield* trainRl(ctx, env.report);
   if (env.onPhase) env.onPhase('evaluating');
-  ctx.metrics = yield* evaluateMetrics(env.params, env.shape, env.data, env.seed, env.label || 'rl');
+  ctx.metrics = yield* evaluateMetrics(env.params, env.shape, env.data, env.seed, env.label || 'rl', env.cfg.metricSamples);
   return ctx;
 }
 
@@ -1966,7 +2122,8 @@ function initEngine(seed) {
   App.randomParams = initParams(App.shape, seed);
   STAGE_ORDER.forEach((key) => { App.stages[key] = newStage(key); App.stages[key].stepsTotal = cfgFor(key).steps; });
   Object.keys(App.experiments).forEach((key) => { App.experiments[key] = newExperiment(); });
-  App.rl.own = []; App.rl.equalCount = 0; App.rl.ownPair = null; App.rl.ownReward = null; App.rl.reward = null; App.rl.simPairs = 0; App.rl.mainLabeller = '';
+  App.rl.own = []; App.rl.equalCount = 0; App.rl.ownPair = null; App.rl.ownReward = null; App.rl.reward = null; App.rl.simPairs = 0; App.rl.mainLabeller = ''; App.rl.lastPairs = null;
+  App.sampleRng = makeRng(hashSeed(seed, 'samples'));
   const pre = App.stages.pretrain;
   pre.status = 'ready';
   pre.hash = weightsHash(App.randomParams);
@@ -2185,6 +2342,7 @@ function onStageDone(key, ctx) {
   stage.hash = weightsHash(stage.params);
   if (key === 'rl') {
     App.rl.reward = ctx.reward;
+    App.rl.lastPairs = ctx.pairs;
     if (App.rl.source !== 'wlasne') App.rl.simPairs = ctx.pairs.length;
   }
   const next = STAGE_ORDER[stageIndex(key) + 1];
@@ -2195,6 +2353,7 @@ function onStageDone(key, ctx) {
     if (next === 'rl') newOwnPair();
   }
   refreshBench();
+  refreshPairSample();
   announce(t('liveTrainingDone', { name: stageName(key) }));
 }
 
@@ -2250,9 +2409,10 @@ function resetStage(key) {
   const experimentsFrom = { pretrain: ['corpus', 'demos', 'labeller'], sft: ['demos', 'labeller'], rl: ['labeller'] };
   experimentsFrom[key].forEach((exp) => { App.experiments[exp] = newExperiment(); });
   if (idx <= 1) { App.rl.own = []; App.rl.equalCount = 0; App.rl.ownPair = null; App.rl.ownReward = null; }
-  if (idx <= 2) { App.rl.reward = null; App.rl.simPairs = 0; App.rl.mainLabeller = ''; }
+  if (idx <= 2) { App.rl.reward = null; App.rl.simPairs = 0; App.rl.mainLabeller = ''; App.rl.lastPairs = null; }
   ensureCheckpoint();
   refreshBench();
+  refreshPairSample();
   renderAll();
 }
 
@@ -2284,6 +2444,7 @@ function changeSeed(value) {
   App.next.checkpoint = 'random';
   App.next.appended = [];
   App.bench.columns = {};
+  refreshSamples();
   renderAll();
   announce(t('seedChanged', { seed }));
 }
@@ -2359,7 +2520,7 @@ function labelOwn(choice) {
   else {
     const win = choice === 'a' ? pair.a : pair.b;
     const lose = choice === 'a' ? pair.b : pair.a;
-    App.rl.own.push({ win: rewardFeatures(win), lose: rewardFeatures(lose), winTokens: win, loseTokens: lose });
+    App.rl.own.push({ prompt: pair.prompt, win: rewardFeatures(win), lose: rewardFeatures(lose), winTokens: win, loseTokens: lose });
     if (App.rl.own.length >= OWN_PAIRS_MIN) fitOwnReward();
   }
   newOwnPair();
@@ -2534,15 +2695,17 @@ function probeReset() {
   App.bench.freeMode = false;
   App.neighbours.checkpoint = 'auto';
   App.rl.source = 'rzeczowy';
+  Object.values(App.steps).forEach(stopAutoplay);
   initEngine(App.seed);
   refreshBench();
+  refreshSamples();
   renderAll();
 }
 
-const PROBE_SHORT = { pretrain: { steps: 30 }, sft: { steps: 20 }, rl: { steps: 6 } };
+const PROBE_SHORT = { pretrain: { steps: 30, metricSamples: 2 }, sft: { steps: 20, metricSamples: 2 }, rl: { steps: 6, metricSamples: 2, pairsTarget: 15 } };
 
-async function runShortStages(keys) {
-  App.loop.cfgOverride = PROBE_SHORT;
+async function runShortStages(keys, overrides) {
+  App.loop.cfgOverride = { ...PROBE_SHORT, ...overrides };
   for (const key of keys) {
     App.loop.lastToggle = -1e9;
     startStage(key);
@@ -2731,6 +2894,153 @@ function probeChecks() {
     });
     return { ok: over.length === 0, value: rows.join(' ') };
   });
+  add('train-notices', async () => {
+    probeReset();
+    const views = ['model', 'pretraining', 'krok-pretraining', 'sft', 'krok-sft', 'rl', 'krok-rl', 'porownanie', 'dane'];
+    const read = (view) => qs(`#view-${view} [data-train-notice]`);
+    const fresh = views.every((view) => read(view) && read(view).dataset.state === 'needed' && read(view).dataset.needs === 'pretrain' && !read(view).hidden && read(view).textContent.length > 20);
+    const none = !qs('#view-prawda [data-train-notice]') && !qs('#view-quiz [data-train-notice]');
+    const link = read('model').querySelector('a');
+    const linkOk = !!link && link.getAttribute('href') === '#pretraining';
+    await runShortStages(['pretrain']);
+    const moved = read('sft').dataset.needs === 'sft' && read('pretraining').dataset.state === 'done' && read('pretraining').hidden && read('krok-pretraining').hidden && read('model').dataset.needs === 'sft';
+    await runShortStages(['sft']);
+    const movedRl = read('rl').dataset.needs === 'rl' && read('sft').hidden;
+    await runShortStages(['rl']);
+    const allGone = views.every((view) => read(view).hidden);
+    resetStage('pretrain');
+    const back = read('model').dataset.needs === 'pretrain' && !read('model').hidden;
+    probeReset();
+    return { ok: fresh && none && linkOk && moved && movedRl && allGone && back, value: `start:${fresh} bez:${none} link:${linkOk} po pre:${moved} po sft:${movedRl} po rl:${allGone} reset:${back}` };
+  });
+  add('top-placeholder', async () => {
+    probeReset();
+    const fresh = qs('#top-pretrain').textContent.trim().length > 0;
+    await runShortStages(['pretrain']);
+    const filled = qsa('#top-pretrain .log-row').length > 0;
+    resetStage('pretrain');
+    renderAll();
+    const again = qs('#top-pretrain').textContent.trim().length > 0 && qsa('#top-pretrain .log-row').length === 0;
+    probeReset();
+    return { ok: fresh && filled && again, value: `start:${fresh} po treningu:${filled} po resecie:${again}` };
+  });
+  add('data-samples', async () => {
+    probeReset();
+    const data = App.data;
+    const allLines = new Set(); data.docs.forEach((d) => d.lines.forEach((l) => allLines.add(l)));
+    const read = (kind) => { const el = qs(`[data-data-sample="${kind}"]`); return { el, total: Number(el.dataset.total), shown: Number(el.dataset.shown), items: JSON.parse(el.dataset.items) }; };
+    const corpus = read('corpus'); const demos = read('demos');
+    const corpusOk = corpus.total === allLines.size + (data.docs.reduce((n, d) => n + d.lines.length, 0) - allLines.size) && corpus.shown <= corpus.total && corpus.items.every((it) => allLines.has(it.line));
+    const demosOk = demos.total === data.demos.length && demos.items.every((it) => data.demos.some((d) => d.prompt === it.prompt && d.response === it.response && d.style === it.style));
+    const before = corpus.el.dataset.items;
+    refreshSamples(['corpus']); renderSamples();
+    const rerolled = qs('[data-data-sample="corpus"]').dataset.items !== before;
+    const pairsNone = read('pairs').el.dataset.source === 'none' && Number(read('pairs').el.dataset.promptsTotal) === data.rlPrompts.length;
+    const longer = { pretrain: { steps: 300, metricSamples: 2 }, sft: { steps: 300, metricSamples: 2 } };
+    await runShortStages(['pretrain', 'sft'], longer);
+    const live = read('pairs').el.dataset.source === 'live';
+    const liveOk = read('pairs').items.length > 0 && read('pairs').items.every((it) => data.rlPrompts.includes(it.prompt));
+    await runShortStages(['rl'], longer);
+    const run = read('pairs').el.dataset.source === 'run' && read('pairs').total === App.rl.lastPairs.length;
+    probeReset();
+    return { ok: corpusOk && demosOk && rerolled && pairsNone && live && liveOk && run, value: `korpus:${corpusOk} SFT:${demosOk} losuj:${rerolled} pary brak:${pairsNone} na żywo:${live}/${liveOk} z treningu:${run}` };
+  });
+  add('step-pretrain', async () => {
+    probeReset();
+    const key = 'pretrain';
+    const el = qs(`[data-step-view="${key}"]`);
+    renderStepView(key);
+    const mainBefore = App.stages.pretrain.hash;
+    const ready = el.dataset.state === 'ready' && el.dataset.source === 'random';
+    const branch0 = el.dataset.branchHash;
+    const sameAsMain = branch0 === weightsHash(App.randomParams);
+    const movedEarly = [];
+    for (let i = 0; i < 3; i++) { stepForward(key); movedEarly.push(el.dataset.branchHash === branch0); }
+    const stillBeforeUpdate = el.dataset.phase === 'loss' && el.dataset.branchHash === branch0;
+    const vals = JSON.parse(el.dataset.values);
+    const lossOk = Math.abs(vals.lossBefore + Math.log(vals.pBefore)) < 1e-6;
+    const work = makeWork(App.shape);
+    const ids = vals.context.map((tok) => App.data.vocab.index.get(tok));
+    work.window.set(ids);
+    forwardWindow(App.randomParams, App.shape, work);
+    softmaxInto(work.logits, work.probs, 1);
+    const recomputed = Math.abs(work.probs[App.data.vocab.index.get(vals.target)] - vals.pBefore) < 1e-9;
+    stepForward(key);
+    const movedAtUpdate = el.dataset.phase === 'update' && el.dataset.branchHash !== branch0 && el.dataset.updates === '1';
+    stepForward(key);
+    const after = JSON.parse(el.dataset.values);
+    const rises = after.pAfter > after.pBefore;
+    stepBackward(key); stepForward(key);
+    const noSecond = el.dataset.updates === '1';
+    const mainSame = App.stages.pretrain.hash === mainBefore && el.dataset.mainHash === mainBefore;
+    probeReset();
+    const ok = ready && sameAsMain && movedEarly.every(Boolean) && stillBeforeUpdate && lossOk && recomputed && movedAtUpdate && rises && noSecond && mainSame;
+    return { ok, value: `gotowy:${ready} strata:${lossOk} przeliczone:${recomputed} aktualizacja:${movedAtUpdate} p ${after.pBefore.toFixed(4)} -> ${after.pAfter.toFixed(4)} bez drugiej:${noSecond} główny:${mainSame}` };
+  });
+  add('step-sft', async () => {
+    probeReset();
+    const key = 'sft';
+    const el = qs(`[data-step-view="${key}"]`);
+    renderStepView(key);
+    const needs = el.dataset.state === 'needs' && qs('#step-next-sft').disabled;
+    await runShortStages(['pretrain']);
+    renderStepView(key);
+    const main = App.stages.pretrain.hash;
+    const ready = el.dataset.state === 'ready' && el.dataset.source === 'pretrain';
+    const first = JSON.parse(el.dataset.values);
+    const demo = App.data.demos[first.demoIndex];
+    const real = demo.prompt === first.prompt && splitTokens(demo.response).concat([TOKEN_END])[first.responseIndex] === first.target;
+    for (let i = 0; i < 5; i++) stepForward(key);
+    const vals = JSON.parse(el.dataset.values);
+    const rises = vals.pAfter > vals.pBefore;
+    const mainSame = App.stages.pretrain.hash === main;
+    probeReset();
+    return { ok: needs && ready && real && rises && mainSame, value: `wymaga:${needs} gotowy:${ready} przykład:${real} p ${vals.pBefore.toFixed(4)} -> ${vals.pAfter.toFixed(4)} główny:${mainSame}` };
+  });
+  add('step-rl', async () => {
+    probeReset();
+    const key = 'rl';
+    const el = qs(`[data-step-view="${key}"]`);
+    renderStepView(key);
+    const needs = el.dataset.state === 'needs' && qs('#step-next-rl').disabled;
+    await runShortStages(['pretrain', 'sft']);
+    renderStepView(key);
+    await waitFor(() => { renderStepView(key); return el.dataset.state === 'ready' && el.dataset.values !== 'null'; }, 30000);
+    const main = App.stages.sft.hash;
+    const first = JSON.parse(el.dataset.values);
+    const different = first.a.tokens.join(' ') !== first.b.tokens.join(' ');
+    const heldOut = App.data.evalPrompts.filter((p) => p.heldOut).map((p) => tokenizeRaw(p.text).join(' '));
+    const promptOk = App.data.rlPrompts.includes(first.prompt) && !heldOut.includes(first.prompt);
+    const pref = first.preferred;
+    const prefHigher = first[pref].reward >= first[pref === 'a' ? 'b' : 'a'].reward;
+    for (let i = 0; i < 3; i++) stepForward(key);
+    const vals = JSON.parse(el.dataset.values);
+    const rises = vals[pref].logPAfter > vals[pref].logPBefore;
+    const mainSame = App.stages.sft.hash === main;
+    probeReset();
+    return { ok: needs && different && promptOk && prefHigher && rises && mainSame, value: `wymaga:${needs} różne:${different} prompt:${promptOk} wyższa:${prefHigher} logP ${vals[pref].logPBefore.toFixed(3)} -> ${vals[pref].logPAfter.toFixed(3)} główny:${mainSame}` };
+  });
+  add('step-keyboard', async () => {
+    probeReset();
+    const startView = App.view;
+    setView('krok-pretraining');
+    const el = qs('[data-step-view="pretrain"]');
+    const press = (key) => document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    press('n');
+    const next = el.dataset.phaseIndex === '1';
+    press('b');
+    const back = el.dataset.phaseIndex === '0';
+    press('a');
+    const on = el.dataset.autoplay === 'true';
+    press('a');
+    const off = el.dataset.autoplay === 'false';
+    press('a');
+    const running = el.dataset.autoplay === 'true';
+    setView(startView);
+    const stopped = el.dataset.autoplay === 'false' && !App.steps.pretrain.timer;
+    probeReset();
+    return { ok: next && back && on && off && running && stopped, value: `N:${next} B:${back} A:${on}/${off} po wyjściu:${stopped}` };
+  });
   add('dom-contract', () => {
     const problems = [];
     const app = refs.app;
@@ -2775,6 +3085,19 @@ function probeChecks() {
       need(el, 'data-json');
     });
     qsa('[data-view-panel]').forEach((panel) => need(panel, 'data-words'));
+    qsa('[data-train-notice]').forEach((notice) => { need(notice, 'data-needs'); need(notice, 'data-state'); });
+    if (qsa('[data-train-notice]').length !== Object.keys(NOTICE_STAGES).length) problems.push('zła liczba komunikatów o treningu');
+    ['corpus', 'demos', 'pairs'].forEach((kind) => {
+      const el = qs(`[data-data-sample="${kind}"]`);
+      ['data-total', 'data-shown', 'data-items'].forEach((name) => need(el, name));
+    });
+    STAGE_ORDER.forEach((key) => {
+      const el = qs(`[data-step-view="${key}"]`);
+      need(el, 'data-state', App.steps[key].state);
+      need(el, 'data-autoplay', App.steps[key].autoplay);
+      need(el, 'data-updates', App.steps[key].updates);
+      ['data-phase', 'data-phase-index', 'data-phases-total', 'data-example', 'data-source', 'data-main-hash', 'data-branch-hash', 'data-values'].forEach((name) => need(el, name));
+    });
     need(refs.probe, 'data-probe-status');
     need(refs.probe, 'data-probe-pass');
     need(refs.probe, 'data-probe-fail');
@@ -2910,6 +3233,333 @@ async function runSeedProbe() {
   setAttr(refs.probe, 'data-seed-results', JSON.stringify(results));
   updateProbeCounts(false);
 }
+
+// ─── Helpers: step pages (a branch of the weights, never the main checkpoints) ───
+const STEP_PHASES = { pretrain: ['context', 'predict', 'target', 'loss', 'update', 'after'], sft: ['context', 'predict', 'target', 'loss', 'update', 'after'], rl: ['pair', 'score', 'update', 'shift'] };
+const STEP_SOURCES = { pretrain: ['random', 'pretrain'], sft: ['pretrain', 'sft'], rl: ['sft', 'rl'] };
+const STEP_LR = { pretrain: () => TRAIN.pretrain.lr, sft: () => TRAIN.sft.lr, rl: () => TRAIN.rl.lr };
+
+function newStep(key) {
+  return { key, state: 'needs', source: STEP_SOURCES[key][0], sourceParams: null, branch: null, adam: null, rng: null, example: 0, phase: 0, updates: 0, values: null, ex: null, autoplay: false, timer: null, rewardModel: null, rewardFrom: null, rewardKind: '', preparingFor: null };
+}
+
+function stepSourceParams(step) { return checkpointParams(step.source); }
+
+function resetStepBranch(step) {
+  step.sourceParams = stepSourceParams(step);
+  step.branch = step.sourceParams.slice();
+  step.adam = makeAdam(App.shape.total);
+  step.rng = makeRng(hashSeed(App.seed, 'step-' + step.key + '-' + step.source));
+  step.example = 0;
+  step.updates = 0;
+  newStepExample(step);
+}
+
+// Keeps each page honest about its source: called before every render of the page.
+function syncStep(step) {
+  const first = STEP_SOURCES[step.key].find((src) => checkpointParams(src));
+  if (!first) {
+    stopAutoplay(step);
+    step.state = 'needs'; step.sourceParams = null; step.branch = null; step.values = null; step.ex = null; step.phase = 0; step.rewardModel = null;
+    return;
+  }
+  if (!checkpointParams(step.source)) step.source = first;
+  if (step.sourceParams !== checkpointParams(step.source)) {
+    stopAutoplay(step);
+    step.state = 'ready';
+    if (step.key === 'rl') { prepareStepReward(step); if (step.state === 'preparing') return; }
+    resetStepBranch(step);
+  } else if (step.key === 'rl') {
+    const main = App.rl.reward;
+    if (main && step.rewardFrom !== main) { step.rewardModel = main; step.rewardFrom = main; step.rewardKind = 'main'; }
+  }
+}
+
+function prepareStepReward(step) {
+  const main = App.rl.reward;
+  if (main) { step.rewardModel = main; step.rewardFrom = main; step.rewardKind = 'main'; return; }
+  const sft = App.stages.sft.params;
+  if (step.preparingFor === sft) { step.state = 'preparing'; return; }
+  if (step.rewardFrom === sft && step.rewardModel) return;
+  step.state = 'preparing';
+  step.preparingFor = sft;
+  const ctx = { sftParams: sft, shape: App.shape, data: App.data, rng: makeRng(hashSeed(App.seed, 'step-reward')), cfg: TRAIN.rl, pairsTarget: App.loop.cfgOverride ? 15 : 60 };
+  const gen = (function* run() { yield* collectSimulatedPairs(ctx, 'rzeczowy'); yield* fitReward(ctx); })();
+  const slice = () => {
+    if (step.preparingFor !== sft) return;
+    const started = nowMs();
+    let res = { done: false };
+    while (nowMs() - started < SLICE_MS && !res.done) res = gen.next();
+    if (!res.done) { setTimeout(slice, 0); return; }
+    step.preparingFor = null;
+    if (App.stages.sft.params !== sft) return;
+    step.rewardModel = ctx.reward; step.rewardFrom = sft; step.rewardKind = 'standin';
+    step.state = 'ready';
+    step.sourceParams = null;
+    renderStepView('rl');
+  };
+  setTimeout(slice, 0);
+}
+
+function topOf(probs, count, mustInclude) {
+  const order = Array.from(probs.keys()).sort((a, b) => probs[b] - probs[a]);
+  const top = order.slice(0, count);
+  if (mustInclude !== undefined && !top.includes(mustInclude)) top[count - 1] = mustInclude;
+  return top.map((id) => ({ token: App.data.vocab.list[id], p: probs[id], isTarget: id === mustInclude }));
+}
+
+function predictInto(step, windowIds) {
+  const work = App.stepWork;
+  work.window.set(windowIds);
+  forwardWindow(step.branch, App.shape, work);
+  softmaxInto(work.logits, work.probs, 1);
+  return work.probs;
+}
+
+function newStepExample(step) {
+  step.phase = 0;
+  step.example += 1;
+  if (step.key === 'rl') { newRlStepExample(step); return; }
+  const data = App.data; const vocab = data.vocab; const work = App.stepWork;
+  let contextIds; let target; let extra = {};
+  if (step.key === 'pretrain') {
+    const sets = App.stepSets.corpus;
+    const at = sets[Math.floor(step.rng() * sets.length)];
+    fillWindow(work, data.corpusIds, at, vocab.nl);
+    target = data.corpusIds[at];
+    contextIds = Array.from(work.window);
+  } else {
+    // The first example of a branch starts the answer, where the change from pretraining is largest.
+    const list = App.stepSets.sft;
+    const candidates = step.example === 1 ? list.filter((ex) => ex.t === 0) : list;
+    const ex = candidates[Math.floor(step.rng() * candidates.length)];
+    const seq = data.demoSeqs[ex.s];
+    const buf = seq.context.concat(seq.response.slice(0, ex.t));
+    fillWindow(work, buf, buf.length, vocab.nl);
+    target = seq.response[ex.t];
+    contextIds = Array.from(work.window);
+    extra = { prompt: data.demos[ex.s].prompt, response: data.demos[ex.s].response, style: data.demos[ex.s].style, responseIndex: ex.t, demoIndex: ex.s };
+  }
+  const probs = predictInto(step, contextIds);
+  const pBefore = probs[target];
+  step.ex = { contextIds, target };
+  step.values = {
+    context: idsToTokens(contextIds), target: vocab.list[target], pBefore, lossBefore: -Math.log(pBefore),
+    topBefore: topOf(probs, 5, target), topAfter: null, pAfter: null, lossAfter: null, gradNorm: null, changed: null, meanChange: null, maxChange: null, lr: STEP_LR[step.key](), ...extra,
+  };
+}
+
+function applyStepUpdate(step) {
+  const vals = step.values;
+  const grad = App.stepGrad; grad.fill(0);
+  const work = App.stepWork;
+  work.window.set(step.ex.contextIds);
+  accumulateGrad(step.branch, grad, App.shape, work, step.ex.target, 1);
+  const before = step.branch.slice();
+  vals.gradNorm = adamStep(step.branch, grad, step.adam, vals.lr, TRAIN[step.key].clip);
+  fillChangeStats(vals, before, step.branch);
+  const probs = predictInto(step, step.ex.contextIds);
+  vals.pAfter = probs[step.ex.target];
+  vals.lossAfter = -Math.log(vals.pAfter);
+  vals.topAfter = topOf(probs, 5, step.ex.target);
+  step.updates += 1;
+}
+
+function fillChangeStats(vals, before, after) {
+  let changed = 0; let sum = 0; let max = 0;
+  for (let i = 0; i < after.length; i++) {
+    const delta = Math.abs(after[i] - before[i]);
+    if (delta > 0) { changed += 1; sum += delta; if (delta > max) max = delta; }
+  }
+  vals.changed = changed; vals.meanChange = sum / Math.max(changed, 1); vals.maxChange = max;
+}
+
+function logProbOfAnswer(params, contextIds, answerIds) {
+  const work = App.stepWork; const vocab = App.data.vocab;
+  const seq = contextIds.slice();
+  let sum = 0; let first = null;
+  answerIds.forEach((id, i) => {
+    fillWindow(work, seq, seq.length, vocab.nl);
+    forwardWindow(params, App.shape, work);
+    softmaxInto(work.logits, work.probs, 1);
+    const logP = Math.log(Math.max(work.probs[id], 1e-300));
+    if (i === 0) first = work.probs[id];
+    sum += logP;
+    seq.push(id);
+  });
+  return { logP: sum, firstP: first };
+}
+
+function stepReward(step, contextIds, answerIds) {
+  const tokens = idsToTokens(answerIds);
+  const model = step.rewardModel;
+  const raw = (rewardScore(model, rewardFeatures(tokens)) - model.mean) / model.std;
+  const clipped = Math.max(-TRAIN.rl.rewardClip, Math.min(TRAIN.rl.rewardClip, raw));
+  const kl = logProbOfAnswer(step.branch, contextIds, answerIds).logP - logProbOfAnswer(App.stages.sft.params, contextIds, answerIds).logP;
+  return { score: clipped, kl, reward: clipped - TRAIN.rl.klBeta * kl };
+}
+
+function newRlStepExample(step) {
+  const data = App.data; const vocab = data.vocab; const work = App.stepWork;
+  let best = null;
+  for (let tries = 0; tries < 40; tries++) {
+    const idx = Math.floor(step.rng() * data.rlPromptIds.length);
+    const ctx = data.rlPromptIds[idx];
+    const a = sampleTokens(step.branch, App.shape, work, ctx, step.rng, 1, vocab.nl, vocab.end, MAX_GEN_TOKENS);
+    const b = sampleTokens(step.branch, App.shape, work, ctx, step.rng, 1, vocab.nl, vocab.end, MAX_GEN_TOKENS);
+    if (a.join() === b.join()) continue;
+    const ra = stepReward(step, ctx, a); const rb = stepReward(step, ctx, b);
+    if (!best || Math.abs(ra.reward - rb.reward) > Math.abs(best.ra.reward - best.rb.reward)) best = { idx, ctx, a, b, ra, rb };
+    if (Math.abs(ra.reward - rb.reward) > 0.2) break;
+  }
+  if (!best) { step.ex = null; step.values = null; return; }
+  const baseline = (best.ra.reward + best.rb.reward) / 2;
+  const preferred = best.ra.reward >= best.rb.reward ? 'a' : 'b';
+  const pa = logProbOfAnswer(step.branch, best.ctx, best.a); const pb = logProbOfAnswer(step.branch, best.ctx, best.b);
+  const expect = data.rlPromptExpect[best.idx];
+  step.ex = { ctx: best.ctx, a: best.a, b: best.b };
+  step.values = {
+    prompt: data.rlPrompts[best.idx], baseline, preferred,
+    a: { tokens: idsToTokens(best.a), cls: classifyOutput(expect, idsToTokens(best.a), data), score: best.ra.score, kl: best.ra.kl, reward: best.ra.reward, adv: best.ra.reward - baseline, logPBefore: pa.logP, firstBefore: pa.firstP, logPAfter: null, firstAfter: null },
+    b: { tokens: idsToTokens(best.b), cls: classifyOutput(expect, idsToTokens(best.b), data), score: best.rb.score, kl: best.rb.kl, reward: best.rb.reward, adv: best.rb.reward - baseline, logPBefore: pb.logP, firstBefore: pb.firstP, logPAfter: null, firstAfter: null },
+    gradNorm: null, changed: null, meanChange: null, maxChange: null, lr: STEP_LR.rl(), klBeta: TRAIN.rl.klBeta, rewardKind: step.rewardKind, labeller: step.rewardKind === 'main' ? App.rl.mainLabeller : 'rzeczowy',
+  };
+}
+
+function applyRlStepUpdate(step) {
+  const vals = step.values; const work = App.stepWork; const vocab = App.data.vocab;
+  const grad = App.stepGrad; grad.fill(0);
+  [['a', step.ex.a], ['b', step.ex.b]].forEach(([key, answer]) => {
+    const seq = step.ex.ctx.concat(answer);
+    for (let t = step.ex.ctx.length; t < seq.length; t++) {
+      fillWindow(work, seq, t, vocab.nl);
+      accumulateGrad(step.branch, grad, App.shape, work, seq[t], vals[key].adv / 2);
+    }
+  });
+  const before = step.branch.slice();
+  vals.gradNorm = adamStep(step.branch, grad, step.adam, vals.lr, TRAIN.rl.clip);
+  fillChangeStats(vals, before, step.branch);
+  const pa = logProbOfAnswer(step.branch, step.ex.ctx, step.ex.a); const pb = logProbOfAnswer(step.branch, step.ex.ctx, step.ex.b);
+  vals.a.logPAfter = pa.logP; vals.a.firstAfter = pa.firstP;
+  vals.b.logPAfter = pb.logP; vals.b.firstAfter = pb.firstP;
+  step.updates += 1;
+}
+
+function stepForward(key) {
+  const step = App.steps[key];
+  syncStep(step);
+  if (step.state !== 'ready' || !step.values) { renderStepView(key); return false; }
+  const phases = STEP_PHASES[key];
+  if (step.phase >= phases.length - 1) newStepExample(step);
+  else {
+    step.phase += 1;
+    if (phases[step.phase] === 'update' && step.values.gradNorm === null) {
+      if (key === 'rl') applyRlStepUpdate(step); else applyStepUpdate(step);
+    }
+  }
+  renderStepView(key);
+  return true;
+}
+
+function stepBackward(key) {
+  const step = App.steps[key];
+  if (step.state === 'ready' && step.phase > 0) step.phase -= 1;
+  renderStepView(key);
+}
+
+function stepOther(key) {
+  const step = App.steps[key];
+  syncStep(step);
+  if (step.state === 'ready') newStepExample(step);
+  renderStepView(key);
+}
+
+function stepRestart(key) {
+  const step = App.steps[key];
+  syncStep(step);
+  if (step.state === 'ready') resetStepBranch(step);
+  renderStepView(key);
+}
+
+function stepSetSource(key, source) {
+  const step = App.steps[key];
+  if (!checkpointParams(source)) return;
+  stopAutoplay(step);
+  step.source = source;
+  step.sourceParams = null;
+  syncStep(step);
+  renderStepView(key);
+}
+
+function stopAutoplay(step) {
+  if (step.timer) clearInterval(step.timer);
+  step.timer = null;
+  step.autoplay = false;
+}
+
+function toggleAutoplay(key) {
+  const step = App.steps[key];
+  if (step.autoplay) { stopAutoplay(step); renderStepView(key); return; }
+  syncStep(step);
+  if (step.state !== 'ready') { renderStepView(key); return; }
+  step.autoplay = true;
+  step.timer = setInterval(() => {
+    if (App.view !== STEP_VIEW[key]) { stopAutoplay(step); renderStepView(key); return; }
+    stepForward(key);
+  }, AUTOPLAY_MS);
+  renderStepView(key);
+}
+
+// ─── Helpers: data samples ───
+function pickSample(list, count) {
+  return shuffled(list, App.sampleRng).slice(0, count);
+}
+
+function refreshSamples(kinds) {
+  const data = App.data;
+  const wanted = kinds || ['corpus', 'demos', 'pairs'];
+  if (wanted.includes('corpus')) {
+    const lines = [];
+    data.docs.forEach((doc) => doc.lines.forEach((line) => lines.push({ genre: doc.genre, line })));
+    App.samples.corpus = { total: lines.length, items: pickSample(lines, SAMPLE_SIZE) };
+  }
+  if (wanted.includes('demos')) {
+    App.samples.demos = { total: data.demos.length, items: pickSample(data.demos, SAMPLE_SIZE) };
+  }
+  if (wanted.includes('pairs')) refreshPairSample();
+}
+
+function refreshPairSample() {
+  const data = App.data; const vocab = data.vocab;
+  const out = { source: 'none', total: 0, items: [], promptsTotal: data.rlPrompts.length, prompts: pickSample(data.rlPrompts, 3) };
+  if (App.rl.lastPairs && App.rl.lastPairs.length) {
+    out.source = 'run';
+    out.total = App.rl.lastPairs.length;
+    out.items = pickSample(App.rl.lastPairs, 3).map((pair) => ({ prompt: pair.prompt, win: pair.winTokens, lose: pair.loseTokens }));
+  } else if (App.stages.sft.status === 'done') {
+    out.source = 'live';
+    const labeller = App.rl.source === 'wlasne' ? 'rzeczowy' : App.rl.source;
+    const rank = LABELLER_RANK[labeller];
+    const work = makeWork(App.shape);
+    out.labeller = labeller;
+    for (let tries = 0; tries < 80 && out.items.length < 3; tries++) {
+      const idx = Math.floor(App.sampleRng() * data.rlPromptIds.length);
+      const ctx = data.rlPromptIds[idx];
+      const a = idsToTokens(sampleTokens(App.stages.sft.params, App.shape, work, ctx, App.sampleRng, 1, vocab.nl, vocab.end, MAX_GEN_TOKENS));
+      const b = idsToTokens(sampleTokens(App.stages.sft.params, App.shape, work, ctx, App.sampleRng, 1, vocab.nl, vocab.end, MAX_GEN_TOKENS));
+      if (a.join(' ') === b.join(' ')) continue;
+      const expect = data.rlPromptExpect[idx];
+      const ra = rank[classifyOutput(expect, a, data)]; const rb = rank[classifyOutput(expect, b, data)];
+      if (ra === rb) continue;
+      out.items.push({ prompt: data.rlPrompts[idx], win: ra > rb ? a : b, lose: ra > rb ? b : a });
+    }
+    out.total = SIMULATED_PAIRS;
+  }
+  App.samples.pairs = out;
+}
+
+// ─── Helpers: train-first notices ───
+function noticeTarget(stages) { return stages.find((key) => App.stages[key].status !== 'done') || ''; }
 
 // ─── Render ───
 // ─── Render: charts ───
@@ -3135,6 +3785,9 @@ function renderLog(key) {
   const topBox = qs(`#top-${key}`);
   if (topBox) {
     topBox.textContent = '';
+    if (!stage.top.length) {
+      const p = document.createElement('p'); p.className = 'edu-small'; p.textContent = t('topEmpty'); topBox.appendChild(p);
+    }
     stage.top.forEach((item) => {
       const row = document.createElement('div'); row.className = 'log-row';
       const label = document.createElement('span'); label.className = 'log-step'; label.textContent = t('logStep', { step: item.step });
@@ -3147,6 +3800,7 @@ function renderLog(key) {
 
 function renderTraining() {
   renderChrome();
+  renderNotices();
   STAGE_ORDER.forEach(renderStage);
   renderExperiments();
 }
@@ -3603,6 +4257,9 @@ function renderSeedTable(results) {
 
 function renderAll() {
   renderChrome();
+  renderNotices();
+  renderSamples();
+  STAGE_ORDER.forEach(renderStepView);
   STAGE_ORDER.forEach(renderStage);
   renderExperiments();
   renderRl();
@@ -3619,9 +4276,243 @@ function renderView() {
     panel.classList.toggle('view-in', active);
   });
   renderChrome();
+  updateHeaderHeight();
   const pill = qs('.nav-pill.active');
   if (pill && refs.nav.scrollWidth > refs.nav.clientWidth) refs.nav.scrollLeft = pill.offsetLeft - refs.nav.offsetLeft - (refs.nav.clientWidth - pill.offsetWidth) / 2;
   STAGE_ORDER.forEach(drawStageCharts);
+}
+
+// ─── Render: notices, samples, step pages ───
+function updateHeaderHeight() {
+  const header = qs('.nav');
+  const box = qs('.edu-header');
+  const height = window.matchMedia('(max-width: 768px)').matches ? header.offsetHeight : box.offsetHeight;
+  document.documentElement.style.setProperty('--header-h', `${height}px`);
+}
+
+function noticeHtml(view) {
+  return `<div class="notice tone-yellow edu-block callout" data-train-notice data-notice-view="${view}" data-needs="" data-state="needed" role="note"><p class="notice-text"></p><div class="notice-action" data-nobudget></div></div>`;
+}
+
+function renderNotices() {
+  qsa('[data-train-notice]').forEach((el) => {
+    const view = el.dataset.noticeView;
+    const target = noticeTarget(NOTICE_STAGES[view]);
+    const state = !target ? 'done' : (App.stages[target].status === 'training' || App.stages[target].status === 'paused' ? 'running' : 'needed');
+    const signature = `${target}|${state}|${target ? App.stages[target].status : ''}|${isBusy()}`;
+    if (el.dataset.signature === signature) return;
+    el.dataset.signature = signature;
+    setAttr(el, 'data-needs', target);
+    setAttr(el, 'data-state', state);
+    el.hidden = state === 'done';
+    if (state === 'done') return;
+    const name = stageName(target);
+    let text = t('noticeNeed', { name });
+    if (state === 'running') text = t(App.stages[target].status === 'paused' ? 'noticePaused' : 'noticeRunning', { name });
+    else if (view === 'krok-pretraining') text = t('noticeStepRandom');
+    setText(qs('.notice-text', el), text);
+    const action = qs('.notice-action', el);
+    action.textContent = '';
+    if (state === 'needed' && STAGE_VIEW[target] === view) {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn-ink';
+      btn.dataset.action = 'notice-train'; btn.dataset.key = target;
+      btn.textContent = t('noticeTrain');
+      btn.disabled = isBusy() || App.stages[target].status !== 'ready';
+      action.appendChild(btn);
+    } else if (STAGE_VIEW[target] !== view) {
+      const link = document.createElement('a');
+      link.className = 'btn-ink'; link.href = `#${STAGE_VIEW[target]}`;
+      link.textContent = t('noticeGo', { name });
+      action.appendChild(link);
+    }
+  });
+}
+
+function renderSamples() {
+  const corpusEl = qs('[data-data-sample="corpus"]');
+  if (!corpusEl || !App.samples.corpus) return;
+  const fillList = (el, kind, sample, whatKey, draw) => {
+    setAttr(el, 'data-total', sample.total);
+    setAttr(el, 'data-shown', sample.items.length);
+    setAttr(el, 'data-items', JSON.stringify(sample.items));
+    setText(qs('.sample-count', el), t('sampleCount', { shown: sample.items.length, total: sample.total, what: t(whatKey) }));
+    const list = qs('.sample-list', el);
+    list.textContent = '';
+    sample.items.forEach((item) => list.appendChild(draw(item)));
+  };
+  const chip = (text, tone) => { const c = document.createElement('span'); c.className = `edu-chip ${tone}`; c.textContent = text; return c; };
+  const line = (text, cls) => { const d = document.createElement('div'); d.className = cls || 'sample-text'; d.textContent = text; return d; };
+  fillList(corpusEl, 'corpus', App.samples.corpus, 'sampleWhatCorpus', (item) => {
+    const li = document.createElement('li');
+    li.append(line(prettyTokens(splitTokens(item.line))), chip(t({ encyklopedia: 'corpusGenreEnc', arkusz: 'corpusGenreSheet', opowiadanie: 'corpusGenreStory', lista: 'corpusGenreList' }[item.genre]), 'tone-stone'));
+    return li;
+  });
+  fillList(qs('[data-data-sample="demos"]'), 'demos', App.samples.demos, 'sampleWhatDemos', (item) => {
+    const li = document.createElement('li');
+    li.append(line(prettyTokens(splitTokens(item.prompt)), 'prompt-line'), line(prettyTokens(splitTokens(item.response))), chip(t(CLASS_KEYS[item.style]), CLASS_TONES[item.style]));
+    return li;
+  });
+  const pairs = App.samples.pairs;
+  const pairsEl = qs('[data-data-sample="pairs"]');
+  setAttr(pairsEl, 'data-source', pairs.source);
+  setAttr(pairsEl, 'data-total', pairs.total);
+  setAttr(pairsEl, 'data-shown', pairs.items.length);
+  setAttr(pairsEl, 'data-items', JSON.stringify(pairs.items));
+  setAttr(pairsEl, 'data-prompts-total', pairs.promptsTotal);
+  setAttr(pairsEl, 'data-prompts', JSON.stringify(pairs.prompts));
+  setText(qs('.sample-prompts-count', pairsEl), t('samplePrompts', { shown: pairs.prompts.length, total: pairs.promptsTotal }));
+  const promptList = qs('.sample-prompts', pairsEl);
+  promptList.textContent = '';
+  pairs.prompts.forEach((prompt) => { const li = document.createElement('li'); li.append(line(prettyTokens(splitTokens(prompt)), 'prompt-line')); promptList.appendChild(li); });
+  let countText = t('samplePairsNone');
+  if (pairs.source === 'run') countText = t('sampleCount', { shown: pairs.items.length, total: pairs.total, what: t('sampleWhatPairsRun') });
+  if (pairs.source === 'live') countText = `${t('sampleCount', { shown: pairs.items.length, total: pairs.total, what: t('sampleWhatPairsLive', { total: pairs.total }) })} ${t('sampleLabeller', { name: t(LABELLER_NAME_KEYS[pairs.labeller]) })}`;
+  setText(qs('.sample-count', pairsEl), countText);
+  const pairList = qs('.sample-list', pairsEl);
+  pairList.textContent = '';
+  pairs.items.forEach((item) => {
+    const li = document.createElement('li');
+    const win = document.createElement('div'); win.className = 'pair-line'; win.append(chip(t('sampleWin'), 'tone-green'), line(prettyTokens(item.win)));
+    const lose = document.createElement('div'); lose.className = 'pair-line'; lose.append(chip(t('sampleLose'), 'tone-red'), line(prettyTokens(item.lose)));
+    li.append(line(prettyTokens(splitTokens(item.prompt)), 'prompt-line'), win, lose);
+    pairList.appendChild(li);
+  });
+}
+
+function pct(value) {
+  if (value === null || value === undefined) return '-';
+  if (value < 0.00001) return `${(value * 100).toExponential(1).replace('.', ',')}%`;
+  return `${(value * 100).toFixed(value < 0.001 ? 4 : (value < 0.1 ? 2 : 1)).replace('.', ',')}%`;
+}
+
+function drawStepBars(box, top) {
+  box.textContent = '';
+  if (!top) { const p = document.createElement('p'); p.className = 'edu-small'; p.textContent = t('stepNotYet'); box.appendChild(p); return; }
+  top.forEach((item) => {
+    const row = document.createElement('div'); row.className = `bar bar-static ${item.isTarget ? 'is-target' : ''}`;
+    const name = document.createElement('span'); name.className = 'bar-name'; name.textContent = item.token;
+    const track = document.createElement('span'); track.className = 'bar-track';
+    const fill = document.createElement('span'); fill.className = 'bar-fill'; fill.style.width = `${Math.max(item.p * 100, 1)}%`;
+    track.appendChild(fill);
+    const val = document.createElement('span'); val.className = 'bar-val'; val.textContent = pct(item.p);
+    row.append(name, track, val);
+    box.appendChild(row);
+  });
+}
+
+function renderStepView(key) {
+  const el = qs(`[data-step-view="${key}"]`);
+  if (!el) return;
+  const step = App.steps[key];
+  syncStep(step);
+  const phases = STEP_PHASES[key];
+  const phaseName = phases[step.phase];
+  const reached = (name) => step.state === 'ready' && step.values && step.phase >= phases.indexOf(name);
+  setAttr(el, 'data-state', step.state);
+  setAttr(el, 'data-phase', step.state === 'ready' ? phaseName : '');
+  setAttr(el, 'data-phase-index', step.phase);
+  setAttr(el, 'data-phases-total', phases.length);
+  setAttr(el, 'data-example', step.example);
+  setAttr(el, 'data-source', step.source);
+  setAttr(el, 'data-updates', step.updates);
+  setAttr(el, 'data-autoplay', step.autoplay);
+  const main = step.sourceParams ? weightsHash(step.sourceParams) : '';
+  const branch = step.branch ? weightsHash(step.branch) : '';
+  setAttr(el, 'data-main-hash', main);
+  setAttr(el, 'data-branch-hash', branch);
+  setAttr(el, 'data-values', JSON.stringify(step.state === 'ready' ? step.values : null));
+  qsa(`#view-${STEP_VIEW[key]} .chain .link`).forEach((link, i) => link.classList.toggle('on', step.state === 'ready' && i === step.phase));
+  const ready = step.state === 'ready' && !!step.values;
+  qs(`#step-next-${key}`).disabled = !ready;
+  setText(qs(`#step-next-${key}`), ready && step.phase === phases.length - 1 ? t('stepNextExample') : t('stepNext'));
+  qs(`#step-back-${key}`).disabled = !ready || step.phase === 0;
+  qs(`#step-other-${key}`).disabled = !ready;
+  qs(`#step-restart-${key}`).disabled = !ready;
+  const play = qs(`#step-play-${key}`);
+  play.disabled = !ready;
+  setText(play, step.autoplay ? t('stepStop') : t('stepPlay'));
+  qsa(`[data-action="step-source"][data-key="${key}"]`).forEach((btn) => {
+    btn.disabled = !checkpointParams(btn.dataset.src);
+    btn.classList.toggle('active', btn.dataset.src === step.source && step.state !== 'needs');
+    btn.setAttribute('aria-pressed', btn.dataset.src === step.source);
+  });
+  const message = step.state === 'preparing' ? t('stepPreparing') : (step.state === 'needs' ? t(key === 'sft' ? 'stepNeedsSft' : 'stepNeedsRl') : '');
+  setText(qs(`#step-message-${key}`), message);
+  setText(qs(`#step-progress-${key}`), ready ? `${t('stepPhaseOf', { n: step.phase + 1, total: phases.length })}. ${t('stepExampleOf', { n: step.example, updates: step.updates })}` : '');
+  setText(qs(`#step-hashes-${key}`), ready ? t('stepHashes', { branch, main }) : '');
+  const vals = ready ? step.values : null;
+  const caption = qs(`#step-caption-${key}`);
+  if (key === 'rl') { renderRlStep(step, vals, reached); setText(caption, ready ? rlCaption(vals, phaseName) : ''); return; }
+  const contextBox = qs(`#step-context-${key}`);
+  contextBox.textContent = '';
+  if (vals) vals.context.forEach((tok) => contextBox.appendChild(makeTokenChip(tok, null, '')));
+  if (key === 'sft') {
+    setText(qs('#step-demo-prompt'), vals ? prettyTokens(splitTokens(vals.prompt)) : '');
+    setText(qs('#step-demo-response'), vals ? prettyTokens(splitTokens(vals.response)) : '');
+    const chipEl = qs('#step-demo-style');
+    chipEl.className = `edu-chip ${vals ? CLASS_TONES[vals.style] : 'tone-stone'}`;
+    setText(chipEl, vals ? t(CLASS_KEYS[vals.style]) : '-');
+  }
+  drawStepBars(qs(`#step-before-${key}`), reached('predict') ? vals.topBefore.map((item) => ({ ...item, isTarget: reached('target') && item.isTarget })) : null);
+  drawStepBars(qs(`#step-after-${key}`), reached('after') ? vals.topAfter : null);
+  setText(qs(`#step-target-${key}`), reached('target') ? vals.target : '-');
+  setText(qs(`#step-p-${key}`), reached('target') ? (reached('after') ? `${pct(vals.pBefore)} → ${pct(vals.pAfter)}` : pct(vals.pBefore)) : '-');
+  setText(qs(`#step-loss-${key}`), reached('loss') ? (reached('after') ? `${fmt(vals.lossBefore)} → ${fmt(vals.lossAfter)}` : fmt(vals.lossBefore)) : '-');
+  setText(qs(`#step-grad-${key}`), reached('update') ? fmt(vals.gradNorm) : '-');
+  setText(qs(`#step-changed-${key}`), reached('update') ? vals.changed.toLocaleString('pl-PL') : '-');
+  setText(qs(`#step-move-${key}`), reached('update') ? vals.meanChange.toFixed(5).replace('.', ',') : '-');
+  if (!ready) { setText(caption, ''); return; }
+  const top = vals.topBefore.slice().sort((a, b) => b.p - a.p)[0];
+  const captions = {
+    context: t('capContext', { n: CONTEXT_LEN }),
+    predict: t('capPredict', { tok: top.token, p: pct(top.p) }),
+    target: t('capTarget', { tok: vals.target, p: pct(vals.pBefore) }),
+    loss: t('capLoss', { p: (vals.pBefore < 0.0001 ? vals.pBefore.toExponential(2) : vals.pBefore.toFixed(4)).replace('.', ','), loss: fmt(vals.lossBefore) }),
+    update: reached('update') ? t('capUpdate', { changed: (vals.changed || 0).toLocaleString('pl-PL'), lr: String(vals.lr).replace('.', ',') }) : '',
+    after: reached('after') ? t('capAfter', { before: pct(vals.pBefore), after: pct(vals.pAfter), lossBefore: fmt(vals.lossBefore), lossAfter: fmt(vals.lossAfter) }) : '',
+  };
+  setText(caption, captions[phaseName]);
+}
+
+function answerProb(logP) {
+  if (logP === null || logP === undefined) return '-';
+  const value = Math.exp(logP);
+  return value < 0.0001 ? value.toExponential(1).replace('.', ',') : `${(value * 100).toFixed(2).replace('.', ',')}%`;
+}
+
+function rlCaption(vals, phaseName) {
+  const name = vals.preferred === 'a' ? 'A' : 'B';
+  const pref = vals[vals.preferred];
+  if (phaseName === 'pair') return t('capPair');
+  if (phaseName === 'score') return t('capScore', { name, base: fmt(vals.baseline) });
+  if (phaseName === 'update') return t('capRlUpdate', { changed: (vals.changed || 0).toLocaleString('pl-PL') });
+  return t('capShift', { name, before: answerProb(pref.logPBefore), after: answerProb(pref.logPAfter) });
+}
+
+function renderRlStep(step, vals, reached) {
+  setText(qs('#step-rl-prompt'), vals ? prettyTokens(splitTokens(vals.prompt)) : '');
+  setText(qs('#step-rl-kind'), vals ? (vals.rewardKind === 'main' ? t('rlKindMain', { name: t(LABELLER_NAME_KEYS[vals.labeller] || 'srcRzeczowy') }) : t('rlKindStandin')) : '');
+  ['a', 'b'].forEach((side) => {
+    const item = vals ? vals[side] : null;
+    setText(qs(`#rl-text-${side}`), item ? prettyTokens(item.tokens) : '-');
+    const chipEl = qs(`#rl-class-${side}`);
+    chipEl.hidden = !item;
+    if (item) { chipEl.className = `edu-chip ${CLASS_TONES[item.cls]}`; setText(chipEl, t(CLASS_KEYS[item.cls])); }
+    const scored = reached('score');
+    qs(`#rl-better-${side}`).hidden = !(scored && vals.preferred === side);
+    setText(qs(`#rl-score-${side}`), scored ? fmt(item.score) : '-');
+    setText(qs(`#rl-kl-${side}`), scored ? fmt(TRAIN.rl.klBeta * item.kl) : '-');
+    setText(qs(`#rl-reward-${side}`), scored ? fmt(item.reward) : '-');
+    setText(qs(`#rl-adv-${side}`), scored ? fmt(item.adv) : '-');
+    setText(qs(`#rl-before-${side}`), item ? answerProb(item.logPBefore) : '-');
+    setText(qs(`#rl-after-${side}`), reached('shift') ? answerProb(item.logPAfter) : '-');
+    setText(qs(`#rl-first-before-${side}`), item ? pct(item.firstBefore) : '-');
+    setText(qs(`#rl-first-after-${side}`), reached('shift') ? pct(item.firstAfter) : '-');
+  });
+  setText(qs('#step-grad-rl'), reached('update') ? fmt(vals.gradNorm) : '-');
+  setText(qs('#step-changed-rl'), reached('update') ? vals.changed.toLocaleString('pl-PL') : '-');
+  setText(qs('#step-move-rl'), reached('update') ? vals.meanChange.toFixed(5).replace('.', ',') : '-');
 }
 
 // ─── Render: view markup ───
@@ -3648,6 +4539,7 @@ function trainControls(key) {
     <button type="button" class="edu-btn" id="train-${key}" data-action="train" data-key="${key}"></button>
     <button type="button" class="btn-ghost" id="reset-${key}" data-action="reset" data-key="${key}">${t('btnReset')}</button>
   </div>
+  <a class="link-more step-link" href="#${STEP_VIEW[key]}">${t('stepLink')}</a>
   <p class="reason" id="reason-${key}"></p>
   <p class="reason" id="note-${key}"></p>
   <p class="err" id="error-${key}" role="alert"></p>
@@ -3680,9 +4572,16 @@ function sameCard(keys, tone) {
     <div class="card-foot" data-nobudget><button type="button" class="btn-ghost" data-action="reroll">${t('benchReroll')}</button></div>
   </div>`;
 }
-function dataCard(tone, textKey) {
-  return `<div class="card">${cardHead('database', tone, t('sftDataTitle'))}<div class="card-body"><p>${t(textKey)}</p></div>
-    <div class="card-foot" data-nobudget><a class="link-more" href="#dane">${t('navDane')}</a></div></div>`;
+function dataCard(tone, textKey, kind) {
+  const prompts = kind === 'pairs' ? '<p class="edu-small sample-prompts-count"></p><ul class="samples sample-prompts"></ul>' : '';
+  return `<div class="card">${cardHead('database', tone, t('sftDataTitle'))}<div class="card-body"><p>${t(textKey)}</p>
+      <div class="data-sample" data-nobudget data-data-sample="${kind}" data-total="0" data-shown="0" data-items="[]">
+        <p class="edu-overline">${t('sampleTitle')}</p>
+        ${prompts}
+        <p class="edu-small sample-count"></p>
+        <ul class="samples sample-list"></ul>
+      </div></div>
+    <div class="card-foot" data-nobudget><button type="button" class="btn-ghost" data-action="sample-reroll" data-kind="${kind}">${t('sampleReroll')}</button><a class="link-more" href="#dane">${t('navDane')}</a></div></div>`;
 }
 function experimentCard(key, tone, titleKey, textKey, btnKey) {
   return `<div class="card" data-experiment="${key}" data-status="idle" data-json="{}">${cardHead('flask-conical', 'tone-red', t(titleKey))}
@@ -3697,6 +4596,7 @@ function viewModelHtml() {
   <section class="sec"><div class="wrap">
     ${secHead('brain', 'tone-grape', 'modelHead')}
     ${heroHtml('tone-grape', 'modelHeroOver', 'modelHeroLead')}
+    ${noticeHtml('model')}
     <div class="split">
       <div class="concept">
         <div class="row-head"><span class="badge tone-grape">${ic('list-ordered')}</span><h3>${t('modelRow')}</h3></div>
@@ -3740,6 +4640,7 @@ function viewPretrainingHtml() {
   return `<section class="sec"><div class="wrap">
     ${secHead('book-open', 'tone-blue', 'preHead')}
     ${heroHtml('tone-blue', 'preHeroOver', 'preHeroLead', heroStageProgress('pretrain'))}
+    ${noticeHtml('pretraining')}
     <div class="split">
       <div class="concept">
         <div class="row-head"><span class="badge tone-blue">${ic('footprints')}</span><h3>${t('preRow')}</h3></div>
@@ -3787,7 +4688,7 @@ function viewPretrainingHtml() {
   </div></section>
   <section class="sec"><div class="wrap"><div class="wide-tiles">
     ${sameCard(['pretrain'], 'tone-blue')}
-    ${dataCard('tone-blue', 'preDataText')}
+    ${dataCard('tone-blue', 'preDataText', 'corpus')}
     ${experimentCard('corpus', 'tone-blue', 'preExpTitle', 'preExpText', 'preExpBtn')}
   </div></div></section>`;
 }
@@ -3798,6 +4699,7 @@ function viewSftHtml() {
   return `<section class="sec"><div class="wrap">
     ${secHead('graduation-cap', 'tone-yellow', 'sftHead')}
     ${heroHtml('tone-yellow', 'sftHeroOver', 'sftHeroLead', heroStageProgress('sft'))}
+    ${noticeHtml('sft')}
     <div class="split">
       <div class="concept">
         <div class="row-head"><span class="badge tone-yellow">${ic('arrow-right-left')}</span><h3>${t('sftRow')}</h3></div>
@@ -3823,7 +4725,7 @@ function viewSftHtml() {
   </div></section>
   <section class="sec"><div class="wrap"><div class="wide-tiles">
     ${sameCard(['pretrain', 'sft'], 'tone-yellow')}
-    ${dataCard('tone-yellow', 'sftDataText')}
+    ${dataCard('tone-yellow', 'sftDataText', 'demos')}
     ${experimentCard('demos', 'tone-yellow', 'sftExpTitle', 'sftExpText', 'sftExpBtn')}
   </div></div></section>`;
 }
@@ -3833,6 +4735,7 @@ function viewRlHtml() {
   return `<section class="sec"><div class="wrap">
     ${secHead('thumbs-up', 'tone-green', 'rlHead')}
     ${heroHtml('tone-green', 'rlHeroOver', 'rlHeroLead', heroStageProgress('rl'))}
+    ${noticeHtml('rl')}
     <div class="split">
       <div class="concept">
         <div class="row-head"><span class="badge tone-green">${ic('scale')}</span><h3>${t('rlRow')}</h3></div>
@@ -3887,7 +4790,7 @@ function viewRlHtml() {
   </div></section>
   <section class="sec"><div class="wrap"><div class="wide-tiles">
     ${sameCard(['sft', 'rl'], 'tone-green')}
-    ${dataCard('tone-green', 'rlDataText')}
+    ${dataCard('tone-green', 'rlDataText', 'pairs')}
     ${experimentCard('labeller', 'tone-green', 'rlExpTitle', 'rlExpText', 'rlExpBtn')}
   </div></div></section>`;
 }
@@ -3902,6 +4805,7 @@ function viewPorownanieHtml() {
   return `<section class="sec"><div class="wrap">
     ${secHead('columns-3', 'tone-ink', 'cmpHead')}
     ${heroHtml('tone-ink', 'cmpHeroOver', 'cmpHeroLead')}
+    ${noticeHtml('porownanie')}
     <div class="card lab" data-nobudget><div class="card-body cmp-form">
       <div class="field"><label for="cmp-select">${t('cmpPromptLabel')}</label>
         <select class="input" id="cmp-select">${options}<option value="free">${t('cmpFree')}</option></select></div>
@@ -3938,6 +4842,7 @@ function viewDaneHtml() {
   return `<section class="sec"><div class="wrap">
     ${secHead('database', 'tone-ink', 'daneHead')}
     ${heroHtml('tone-ink', 'daneHeroOver', 'daneHeroLead')}
+    ${noticeHtml('dane')}
     <div class="card" id="dane-card"><div class="card-body table-wrap"><div class="table-card" tabindex="0"><table id="dane-table"><thead><tr><th>${t('daneColFeature')}</th><th>${t('stageNamePretrain')}</th><th>${t('stageNameSft')}</th><th>${t('stageNameRl')}</th></tr></thead><tbody>${body}</tbody></table></div></div></div>
     <div class="pair dane-foot">
       <details class="more"><summary>${t('daneFold')}</summary>
@@ -3986,10 +4891,116 @@ function viewQuizHtml() {
   </div></section>`;
 }
 
+function stepControls(key) {
+  const sources = { pretrain: [['random', 'stepSrcRandom'], ['pretrain', 'stepSrcPretrain']], sft: [['pretrain', 'stepSrcPretrain'], ['sft', 'stepSrcSft']], rl: [['sft', 'stepSrcSft'], ['rl', 'stepSrcRl']] }[key]
+    .map(([src, label]) => `<button type="button" data-action="step-source" data-key="${key}" data-src="${src}">${t(label)}</button>`).join('');
+  return `<div class="field"><span class="label" id="step-src-${key}">${t('stepSourceLabel')}</span><div class="edu-seg wrap-seg" role="group" aria-labelledby="step-src-${key}">${sources}</div></div>
+    <p class="reason" id="step-message-${key}"></p>
+    <div class="controls">
+      <button type="button" class="edu-btn" id="step-next-${key}" data-action="step-next" data-key="${key}">${t('stepNext')}</button>
+      <button type="button" class="btn-ghost" id="step-back-${key}" data-action="step-back" data-key="${key}">${t('stepBack')}</button>
+      <button type="button" class="btn-ghost" id="step-play-${key}" data-action="step-play" data-key="${key}">${t('stepPlay')}</button>
+      <button type="button" class="btn-ghost" id="step-other-${key}" data-action="step-other" data-key="${key}">${t('stepOther')}</button>
+      <button type="button" class="btn-ghost" id="step-restart-${key}" data-action="step-restart" data-key="${key}">${t('stepRestart')}</button>
+    </div>
+    <p class="edu-overline" id="step-progress-${key}"></p>
+    <output class="step-caption" id="step-caption-${key}" aria-live="polite"></output>`;
+}
+
+function stepStats(key, withTarget) {
+  const targetStats = withTarget ? `<span><b id="step-target-${key}">-</b> ${t('stepTargetLabel')}</span>
+    <span><b id="step-p-${key}">-</b> ${t('stepPLabel')}</span>
+    <span><b id="step-loss-${key}">-</b> ${t('stepLossLabel')}</span>` : '';
+  return `<div class="stats">${targetStats}
+    <span><b id="step-grad-${key}">-</b> ${t('stepGradLabel')}</span>
+    <span><b id="step-changed-${key}">-</b> ${t('stepChangedLabel')}</span>
+    <span><b id="step-move-${key}">-</b> ${t('stepMoveLabel')}</span></div>`;
+}
+
+function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, foldKey, foldVars, extraTop, bottom) {
+  return `<section class="sec"><div class="wrap">
+    ${secHead(icon, tone, headKey)}
+    ${heroHtml(tone, overKey, leadKey)}
+    ${noticeHtml(STEP_VIEW[key])}
+    <div class="split">
+      <div class="concept">
+        <div class="row-head"><span class="badge ${tone}">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
+        ${chainHtml(['phaseContext', 'phasePredict', 'phaseTarget', 'phaseLoss', 'phaseUpdate', 'phaseAfter'])}
+        <details class="more"><summary>${t('krokFoldPre')}</summary><p>${t(foldKey, foldVars)}</p></details>
+      </div>
+      <div class="card lab" data-step-view="${key}" data-nobudget><div class="card-body">
+        ${stepControls(key)}
+        ${extraTop || ''}
+        <p class="edu-overline">${t('stepContextLabel')}</p>
+        <div class="tokens" id="step-context-${key}"></div>
+        <div class="pair">
+          <div><p class="edu-overline">${t('stepBeforeLabel')}</p><div class="bars" id="step-before-${key}"></div></div>
+          <div><p class="edu-overline">${t('stepAfterLabel')}</p><div class="bars" id="step-after-${key}"></div></div>
+        </div>
+        ${stepStats(key, true)}
+        <p class="edu-small hash-line" id="step-hashes-${key}"></p>
+      </div></div>
+    </div>
+  </div></section>${bottom || ''}`;
+}
+
+function viewKrokPretrainingHtml() {
+  return viewStepTokenHtml('pretrain', 'tone-blue', 'book-open', 'krokPreHead', 'krokPreOver', 'krokPreLead', 'krokFoldPreText', { batch: TRAIN.pretrain.batch, lr: String(TRAIN.pretrain.lr).replace('.', ',') });
+}
+
+function viewKrokSftHtml() {
+  const demoBox = `<div class="demo-box"><p class="edu-overline">${t('stepDemoLabel')}</p><p class="prompt-line" id="step-demo-prompt"></p><p class="sample-text" id="step-demo-response"></p><span class="edu-chip tone-stone" id="step-demo-style"></span></div>`;
+  const lines = App.data.docs.reduce((n, doc) => n + doc.lines.length, 0);
+  const rows = [
+    ['diffRowData', t('diffPreData', { n: lines }), t('diffSftData', { n: App.data.demos.length })],
+    ['diffRowTarget', t('diffPreTarget'), t('diffSftTarget')],
+    ['diffRowLr', String(TRAIN.pretrain.lr).replace('.', ','), String(TRAIN.sft.lr).replace('.', ',')],
+    ['diffRowStart', t('diffPreStart'), t('diffSftStart')],
+  ].map(([label, a, b]) => `<tr><td>${t(label)}</td><td>${a}</td><td>${b}</td></tr>`).join('');
+  const bottom = `<section class="sec"><div class="wrap"><div class="card" id="diff-card">${cardHead('git-compare', 'tone-yellow', t('diffTitle'))}<div class="card-body table-wrap"><div class="table-card" tabindex="0"><table><thead><tr><th>${t('diffColWhat')}</th><th>${t('stageNamePretrain')}</th><th>${t('stageNameSft')}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="edu-small scale-extra">${t('samePhases')}</p></div></div></div></section>`;
+  return viewStepTokenHtml('sft', 'tone-yellow', 'graduation-cap', 'krokSftHead', 'krokSftOver', 'krokSftLead', 'krokFoldSftText', { batch: TRAIN.sft.batch }, demoBox, bottom);
+}
+
+function viewKrokRlHtml() {
+  const side = (s, labelKey) => `<div class="pair-opt"><p class="edu-overline">${t(labelKey)} <span class="edu-chip tone-green" id="rl-better-${s}" hidden>${t('rlBetter')}</span></p>
+      <p class="sample-text" id="rl-text-${s}">-</p><span class="edu-chip tone-stone" id="rl-class-${s}" hidden></span>
+      <dl class="rl-values">
+        <dt>${t('rlScoreLabel')}</dt><dd id="rl-score-${s}">-</dd>
+        <dt>${t('rlKlLabel')}</dt><dd id="rl-kl-${s}">-</dd>
+        <dt>${t('rlRewardLabel')}</dt><dd id="rl-reward-${s}">-</dd>
+        <dt>${t('rlAdvLabel')}</dt><dd id="rl-adv-${s}">-</dd>
+        <dt>${t('rlProbBefore')}</dt><dd id="rl-before-${s}">-</dd>
+        <dt>${t('rlProbAfter')}</dt><dd id="rl-after-${s}">-</dd>
+        <dt>${t('rlFirstBefore')}</dt><dd id="rl-first-before-${s}">-</dd>
+        <dt>${t('rlFirstAfter')}</dt><dd id="rl-first-after-${s}">-</dd>
+      </dl></div>`;
+  return `<section class="sec"><div class="wrap">
+    ${secHead('thumbs-up', 'tone-green', 'krokRlHead')}
+    ${heroHtml('tone-green', 'krokRlOver', 'krokRlLead')}
+    ${noticeHtml('krok-rl')}
+    <div class="split">
+      <div class="concept">
+        <div class="row-head"><span class="badge tone-green">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
+        ${chainHtml(['phasePair', 'phaseScore', 'phaseRlUpdate', 'phaseShift'])}
+        <div class="tile"><span class="badge tone-green">${ic('git-compare')}</span><h4>${t('rlDiffTitle')}</h4><p>${t('rlDiffText')}</p></div>
+        <details class="more"><summary>${t('krokFoldPre')}</summary><p>${t('krokFoldRlText', { batch: TRAIN.rl.batch, kl: String(TRAIN.rl.klBeta).replace('.', ',') })}</p></details>
+      </div>
+      <div class="card lab" data-step-view="rl" data-nobudget><div class="card-body">
+        ${stepControls('rl')}
+        <p class="edu-small" id="step-rl-kind"></p>
+        <p class="prompt-line"><span>${t('rlPromptLabel')}: </span><span id="step-rl-prompt"></span></p>
+        <div class="pair">${side('a', 'rlAnswerA')}${side('b', 'rlAnswerB')}</div>
+        ${stepStats('rl', false)}
+        <p class="edu-small hash-line" id="step-hashes-rl"></p>
+      </div></div>
+    </div>
+  </div></section>`;
+}
+
 function buildViews() {
-  const builders = { model: viewModelHtml, pretraining: viewPretrainingHtml, sft: viewSftHtml, rl: viewRlHtml, porownanie: viewPorownanieHtml, dane: viewDaneHtml, prawda: viewPrawdaHtml, quiz: viewQuizHtml };
+  const builders = { 'krok-pretraining': viewKrokPretrainingHtml, 'krok-sft': viewKrokSftHtml, 'krok-rl': viewKrokRlHtml, model: viewModelHtml, pretraining: viewPretrainingHtml, sft: viewSftHtml, rl: viewRlHtml, porownanie: viewPorownanieHtml, dane: viewDaneHtml, prawda: viewPrawdaHtml, quiz: viewQuizHtml };
   refs.views.innerHTML = VIEW_ORDER.map((view) => `<div data-view-panel="${view}" data-words="0" id="view-${view}" hidden>${builders[view]()}</div>`).join('');
-  refs.nav.innerHTML = VIEW_ORDER.map((view, i) => `<a class="nav-pill" data-view="${view}" href="#${view}" title="${i + 1}">${t(VIEW_NAV_KEYS[view])}</a>`).join('');
+  refs.nav.innerHTML = VIEW_ORDER.map((view, i) => `<a class="nav-pill" data-view="${view}" href="#${view}" title="${Object.keys(VIEW_KEYS).find((key) => VIEW_KEYS[key] === view)}" data-index="${i + 1}">${t(VIEW_NAV_KEYS[view])}</a>`).join('');
   refs.nav.setAttribute('aria-label', t('navLabel'));
 }
 
@@ -3997,6 +5008,9 @@ function buildViews() {
 function setView(view) {
   const target = VIEW_ORDER.includes(view) ? view : 'model';
   const changed = target !== App.view;
+  Object.keys(App.steps).forEach((key) => {
+    if (STEP_VIEW[key] !== target && App.steps[key].autoplay) { stopAutoplay(App.steps[key]); renderStepView(key); }
+  });
   App.view = target;
   App.visited.add(target);
   saveVisited();
@@ -4055,6 +5069,14 @@ const ACTIONS = {
     const first = qs('#quiz-body input');
     if (first) first.focus();
   },
+  'step-next': (el) => stepForward(el.dataset.key),
+  'step-back': (el) => stepBackward(el.dataset.key),
+  'step-other': (el) => stepOther(el.dataset.key),
+  'step-restart': (el) => stepRestart(el.dataset.key),
+  'step-play': (el) => toggleAutoplay(el.dataset.key),
+  'step-source': (el) => stepSetSource(el.dataset.key, el.dataset.src),
+  'sample-reroll': (el) => { refreshSamples([el.dataset.kind]); renderSamples(); },
+  'notice-train': (el) => { if (App.stages[el.dataset.key].status === 'ready') startStage(el.dataset.key); },
   'help-open': () => openHelp(),
   'help-close': () => closeHelp(),
   'probe-rerun': (el) => App.probe.run(el.dataset.name),
@@ -4130,9 +5152,16 @@ function bindListeners() {
     if (refs.help.open) return;
     if (isTypingTarget(event.target)) return;
     const key = event.key;
-    if (key >= '1' && key <= '8') {
-      window.location.hash = VIEW_ORDER[Number(key) - 1];
+    const stepKey = STAGE_ORDER.find((k) => STEP_VIEW[k] === App.view);
+    if (Object.prototype.hasOwnProperty.call(VIEW_KEYS, key)) {
+      window.location.hash = VIEW_KEYS[key];
       event.preventDefault();
+    } else if (stepKey && (key === 'n' || key === 'N')) {
+      stepForward(stepKey);
+    } else if (stepKey && (key === 'b' || key === 'B')) {
+      stepBackward(stepKey);
+    } else if (stepKey && (key === 'a' || key === 'A')) {
+      toggleAutoplay(stepKey);
     } else if (key === 't' || key === 'T') {
       const stageKey = STAGE_ORDER.find((k) => STAGE_VIEW[k] === App.view);
       if (stageKey) {
@@ -4151,7 +5180,7 @@ function bindListeners() {
     if (App.helpReturn && App.helpReturn.focus) App.helpReturn.focus();
   });
   window.addEventListener('hashchange', () => setView(window.location.hash.slice(1)));
-  window.addEventListener('resize', () => STAGE_ORDER.forEach(drawStageCharts));
+  window.addEventListener('resize', () => { STAGE_ORDER.forEach(drawStageCharts); updateHeaderHeight(); });
   App.loop.channel = new MessageChannel();
   App.loop.channel.port1.onmessage = pump;
   if ('PerformanceObserver' in window) {
@@ -4173,6 +5202,10 @@ function init() {
   App.data = buildData();
   App.shape = makeShape(App.data.vocab.list.length);
   App.next.work = makeWork(App.shape);
+  App.stepWork = makeWork(App.shape);
+  App.stepGrad = new Float64Array(App.shape.total);
+  App.stepSets = { corpus: exampleSets(App.data).corpusTrain, sft: makeSftExamples(App.data.demoSeqs).train };
+  STAGE_ORDER.forEach((key) => { App.steps[key] = newStep(key); });
   const params = new URLSearchParams(window.location.search);
   const seedParam = Number(params.get('seed'));
   const seed = Number.isInteger(seedParam) && seedParam >= 1 && seedParam <= 9999 ? seedParam : DEFAULT_SEED;
@@ -4186,7 +5219,7 @@ function init() {
   qs('#help-open').textContent = t('helpOpen');
   qs('#help-title').textContent = t('helpTitle');
   qs('#help-close').textContent = t('helpClose');
-  qs('#help-list').innerHTML = ['helpViews', 'helpTrain', 'helpNext', 'helpHelp'].map((key) => `<li>${t(key)}</li>`).join('');
+  qs('#help-list').innerHTML = ['helpViews', 'helpTrain', 'helpNext', 'helpSteps', 'helpHelp'].map((key) => `<li>${t(key)}</li>`).join('');
   qs('#footer-text').textContent = t('footer');
   qs('#skip-link').textContent = t('skipLink');
   qs('#train-bar-pause').textContent = t('btnPause');
@@ -4201,6 +5234,7 @@ function init() {
   bindListeners();
   qs('#next-prompt').value = App.next.text;
   refreshBench();
+  refreshSamples();
   renderScale();
   renderMini();
   renderCorpus();
