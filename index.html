@@ -1554,8 +1554,8 @@ const App = {
   pipeline: false,
   live: { count: 0 },
   loop: { gen: null, ctx: null, kind: null, key: null, paused: false, scheduled: false, half: false, activeMs: 0, lastRender: 0, lastToggle: -1e9, onDone: null, channel: null, cfgOverride: null, lrOverride: null, startCount: 0, experimentSteps: 0, sliceMs: 0 },
-  next: { defaultText: 'Jaka jest stolica', text: '', trimmedFrom: 0, appended: [], sampled: '', temperature: 1, checkpoint: 'random', movedNote: '', work: null },
-  bench: { defaultText: 'Jaka jest stolica Francji?', text: '', parsed: null, columns: {}, freeMode: false, trimmedFrom: 0, draft: { text: '', trimmedFrom: 0 } },
+  next: { defaultText: 'Jaka jest stolica', text: '', trimmed: false, appended: [], sampled: '', temperature: 1, checkpoint: 'random', movedNote: '', work: null },
+  bench: { defaultText: 'Jaka jest stolica Francji?', text: '', parsed: null, columns: {}, freeMode: false, trimmed: false },
   neighbours: { checkpoint: 'auto' },
   steps: {},
   stepWork: null,
@@ -2403,14 +2403,29 @@ function computePretrainInitialLoss(stage) {
 }
 
 // ─── Helpers: prompts ───
+// Cuts text to MAX_PROMPT_CHARS without splitting a UTF-16 surrogate pair (e.g. an emoji at the boundary).
+function clipPrompt(raw) {
+  if (raw.length <= MAX_PROMPT_CHARS) return { text: raw, trimmed: false };
+  let end = MAX_PROMPT_CHARS;
+  const last = raw.charCodeAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end -= 1;
+  return { text: raw.slice(0, end), trimmed: true };
+}
 function parsePrompt(text) {
-  let value = String(text === undefined || text === null ? '' : text);
-  let trimmed = false;
-  if (value.length > MAX_PROMPT_CHARS) { value = value.slice(0, MAX_PROMPT_CHARS); trimmed = true; }
+  const { text: value, trimmed } = clipPrompt(String(text === undefined || text === null ? '' : text));
   const empty = value.trim().length === 0;
   const { raw, ids } = tokenize(value, App.data.vocab);
   const unknown = ids.filter((id) => id === App.data.vocab.unk).length;
   return { value, trimmed, empty: empty || raw.length === 0, raw, ids, unknown, allUnknown: ids.length > 0 && unknown === ids.length, expect: expectationForText(value) };
+}
+// The text each prompt field was last cut to. A field counts as trimmed while it still holds exactly that text,
+// so reading it again (Enter, then change, then click) keeps the notice, and any other value clears it.
+const clippedFieldText = new WeakMap();
+function readPromptField(field) {
+  const clip = clipPrompt(field.value);
+  if (clip.trimmed) { field.value = clip.text; clippedFieldText.set(field, clip.text); }
+  else if (clippedFieldText.get(field) !== clip.text) clippedFieldText.delete(field);
+  return { text: clip.text, trimmed: clippedFieldText.get(field) === clip.text };
 }
 function idsToTokens(ids) { return ids.map((id) => App.data.vocab.list[id]); }
 
@@ -2949,9 +2964,8 @@ function probeReset() {
   App.next.movedNote = '';
   App.bench.text = App.bench.defaultText;
   App.bench.freeMode = false;
-  App.bench.trimmedFrom = 0;
-  App.bench.draft = { text: '', trimmedFrom: 0 };
-  App.next.trimmedFrom = 0;
+  App.bench.trimmed = false;
+  App.next.trimmed = false;
   App.neighbours.checkpoint = 'auto';
   App.rl.source = 'rzeczowy';
   Object.values(App.steps).forEach(stopAutoplay);
@@ -3018,15 +3032,17 @@ function probeChecks() {
     return { ok, value: idsToTokens(unk.ids).join(' ') };
   });
   add('prompts', () => {
-    const keepText = App.next.text;
+    const keepText = App.next.text; const keepTrimmed = App.next.trimmed;
     const countImgBefore = document.images.length;
     const empty = parsePrompt('   ').empty;
-    App.next.text = '<img src=x onerror=alert(1)>'; App.next.appended = []; renderNext();
+    App.next.text = '<img src=x onerror=alert(1)>'; App.next.trimmed = false; App.next.appended = []; renderNext();
     const noImg = document.images.length === countImgBefore && qs('[data-next-token]').textContent.includes('<') ;
     const long = parsePrompt('a '.repeat(5000));
     const longOk = long.trimmed && long.value.length === MAX_PROMPT_CHARS;
-    App.next.text = keepText; App.next.appended = []; renderNext();
-    return { ok: empty && noImg && longOk, value: `pusty ${empty}, html ${noImg}, długi ${longOk}` };
+    const emoji = clipPrompt('a'.repeat(MAX_PROMPT_CHARS - 1) + '🙂');
+    const surrogateOk = emoji.trimmed && emoji.text.length === MAX_PROMPT_CHARS - 1;
+    App.next.text = keepText; App.next.trimmed = keepTrimmed; App.next.appended = []; renderNext();
+    return { ok: empty && noImg && longOk && surrogateOk, value: `pusty ${empty}, html ${noImg}, długi ${longOk}, emoji ${surrogateOk}` };
   });
   add('temperature', () => {
     const shape = App.shape; const work = makeWork(shape);
@@ -3356,11 +3372,11 @@ function probeChecks() {
   });
   add('long-prompt-model', () => {
     const field = qs('#next-prompt');
-    const keep = App.next.text;
+    const keep = App.next.text; const keepTrimmed = App.next.trimmed;
     field.value = 'kot '.repeat(2500);
     field.dispatchEvent(new Event('input', { bubbles: true }));
     const ok = field.value.length === MAX_PROMPT_CHARS && qs('#next-messages').textContent.includes(String(MAX_PROMPT_CHARS)) && qsa('#next-tokens .unseen').length > 0;
-    field.value = keep; App.next.text = keep; App.next.trimmedFrom = 0; App.next.appended = []; renderNext();
+    field.value = keep; App.next.text = keep; App.next.trimmed = keepTrimmed; App.next.appended = []; renderNext();
     return { ok, value: `komunikat i niewidoczne tokeny: ${ok}` };
   });
   add('long-prompt-compare', () => {
@@ -3370,26 +3386,35 @@ function probeChecks() {
     const enter = () => field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     const change = () => field.dispatchEvent(new Event('change', { bubbles: true }));
     const click = () => qs('#view-porownanie [data-action="cmp-run"]').click();
+    const bench = App.bench;
+    const keep = { text: bench.text, trimmed: bench.trimmed, freeMode: bench.freeMode, parsed: bench.parsed, columns: bench.columns, field: field.value, clipped: clippedFieldText.get(field) };
     select.value = 'free'; select.dispatchEvent(new Event('change', { bubbles: true }));
-    type('kot '.repeat(2500)); enter(); change();
+    type('kot '.repeat(2500)); enter();
+    const firstColumns = bench.columns;
+    change();
     const enterThenChange = trimShown() && field.value.length === MAX_PROMPT_CHARS && qsa('#cmp-tokens .unseen').length > 0;
     change(); click(); click();
     const changeThenClicks = trimShown();
+    const samplesKept = bench.columns === firstColumns;
     type('Jaka jest stolica?'); enter(); change();
-    const shortClears = !trimShown() && App.bench.trimmedFrom === 0;
+    const shortClears = !trimShown() && bench.trimmed === false;
     type('pies '.repeat(2000)); click();
     const pasteClick = trimShown();
     select.value = 'francji'; select.dispatchEvent(new Event('change', { bubbles: true }));
     const presetClears = !trimShown();
-    field.value = ''; App.bench.draft = { text: '', trimmedFrom: 0 };
-    return { ok: enterThenChange && changeThenClicks && shortClears && pasteClick && presetClears, value: `Enter+change:${enterThenChange} podwójne zastosowanie:${changeThenClicks} krótki czyści:${shortClears} wklej+klik:${pasteClick} lista czyści:${presetClears}` };
+    Object.assign(bench, { text: keep.text, trimmed: keep.trimmed, freeMode: keep.freeMode, parsed: keep.parsed, columns: keep.columns });
+    field.value = keep.field;
+    if (keep.clipped === undefined) clippedFieldText.delete(field); else clippedFieldText.set(field, keep.clipped);
+    renderBench();
+    const ok = enterThenChange && changeThenClicks && samplesKept && shortClears && pasteClick && presetClears;
+    return { ok, value: `Enter+change:${enterThenChange} podwójne zastosowanie:${changeThenClicks} te same próbki:${samplesKept} krótki czyści:${shortClears} wklej+klik:${pasteClick} lista czyści:${presetClears}` };
   });
   add('long-prompt-smol', () => {
-    const field = qs('#smol-prompt'); const keep = App.smol.prompt;
+    const field = qs('#smol-prompt'); const keep = App.smol.prompt; const keepTrimmed = App.smol.trimmed;
     field.value = 'cat '.repeat(2500);
     field.dispatchEvent(new Event('input', { bubbles: true }));
     const ok = field.value.length === MAX_PROMPT_CHARS && App.smol.prompt.length === MAX_PROMPT_CHARS && qs('#smol-prompt-note').textContent.includes(String(MAX_PROMPT_CHARS));
-    field.value = keep; App.smol.prompt = keep; App.smol.trimmedFrom = 0; renderSmol();
+    field.value = keep; App.smol.prompt = keep; App.smol.trimmed = keepTrimmed; renderSmol();
     return { ok, value: `komunikat:${ok}` };
   });
   add('demo-paging-focus', () => {
@@ -3963,7 +3988,7 @@ function newSmolColumn(key) {
 }
 
 function initSmol() {
-  App.smol = { columns: {}, prompt: SMOL_DEFAULT_PROMPT, trimmedFrom: 0, promptError: '', queue: [], running: null, engine: 'wasm', engineChosen: new URLSearchParams(window.location.search).get('backend') === 'wasm', gpuChecked: false, gpuAvailable: false, factory: createRealSmolWorker };
+  App.smol = { columns: {}, prompt: SMOL_DEFAULT_PROMPT, trimmed: false, promptError: '', queue: [], running: null, engine: 'wasm', engineChosen: new URLSearchParams(window.location.search).get('backend') === 'wasm', gpuChecked: false, gpuAvailable: false, factory: createRealSmolWorker };
   SMOL_ORDER.forEach((key) => { App.smol.columns[key] = newSmolColumn(key); });
 }
 
@@ -4271,7 +4296,7 @@ function smolProbeChecks(add) {
     smolGenerate();
     await until(() => state('instruct') === 'error');
     const generateFailed = column('instruct').getAttribute('data-error-kind') === 'generate';
-    const emptyPrompt = (() => { App.smol.prompt = '  '; const r = smolGenerate(); return r === false && qs('#smol-prompt-error').textContent.length > 0; })();
+    const emptyPrompt = (() => { App.smol.prompt = '  '; App.smol.trimmed = false; const r = smolGenerate(); return r === false && qs('#smol-prompt-error').textContent.length > 0; })();
     restore();
     return { ok: message && generateFailed && emptyPrompt, value: `pobieranie:${message} generowanie:${generateFailed} pusty prompt:${emptyPrompt}` };
   });
@@ -4321,6 +4346,8 @@ async function runSmolRealProbe() {
   await new Promise((r) => setTimeout(r, 300));
   const prompts = SMOL_PROMPTS;
   const results = [];
+  const keepPrompt = App.smol.prompt; const keepTrimmed = App.smol.trimmed;
+  App.smol.trimmed = false;
   await checkSftAvailability();
   for (const key of SMOL_ORDER) {
     const column = App.smol.columns[key];
@@ -4345,6 +4372,7 @@ async function runSmolRealProbe() {
     Object.assign(column, newSmolColumn(key), { checked: true });
     renderSmol();
   }
+  App.smol.prompt = keepPrompt; App.smol.trimmed = keepTrimmed; renderSmol();
   setAttr(refs.probe, 'data-real-results', JSON.stringify(results));
   updateProbeCounts(false);
 }
@@ -4651,7 +4679,7 @@ function renderNext() {
   if (input.value !== App.next.text && document.activeElement !== input) input.value = App.next.text;
   const messages = [];
   if (parsed.empty) messages.push(t('promptEmpty'));
-  if (parsed.trimmed || App.next.trimmedFrom) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
+  if (parsed.trimmed || App.next.trimmed) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
   if (ids.length > CONTEXT_LEN) messages.push(t('unseenNote', { n: CONTEXT_LEN }));
@@ -4777,7 +4805,7 @@ function renderBench() {
 
   const messages = [];
   if (parsed.empty) messages.push(t('promptEmpty'));
-  if (parsed.trimmed || bench.trimmedFrom) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
+  if (parsed.trimmed || bench.trimmed) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
   if (!parsed.empty && parsed.ids.length + 1 > CONTEXT_LEN) messages.push(t('unseenNote', { n: CONTEXT_LEN }));
@@ -5961,6 +5989,10 @@ function renderSmolColumn(key) {
   setText(qs('.smol-timing', el), column.ms ? t('smolTiming', { tokens: column.tokens, seconds: fmt(column.ms / 1000, 1), rate: fmt(1000 * column.tokens / column.ms, 1) }) : '');
 }
 
+function renderSmolPromptNote() {
+  setText(qs('#smol-prompt-note'), App.smol.trimmed ? t('promptTrimmed', { max: MAX_PROMPT_CHARS }) : '');
+}
+
 function renderSmol() {
   const root = qs('[data-smol]');
   if (!root) return;
@@ -5980,7 +6012,7 @@ function renderSmol() {
   const input = qs('#smol-prompt');
   if (document.activeElement !== input && input.value !== smol.prompt) input.value = smol.prompt;
   setText(qs('#smol-prompt-error'), smol.promptError);
-  setText(qs('#smol-prompt-note'), smol.trimmedFrom ? t('promptTrimmed', { max: MAX_PROMPT_CHARS }) : '');
+  renderSmolPromptNote();
   const anyReady = SMOL_ORDER.some((key) => smol.columns[key].state === 'ready');
   qs('#smol-generate').disabled = !anyReady;
   setText(qs('#smol-generate-hint'), anyReady ? '' : t('smolGenerateHint'));
@@ -6128,34 +6160,24 @@ const ACTIONS = {
   'smol-engine': (el) => smolSetEngine(el.dataset.engine),
   'smol-cancel': (el) => smolCancel(el.dataset.key),
   'smol-generate': () => smolGenerate(),
-  'smol-preset': (el) => { App.smol.prompt = el.dataset.prompt; App.smol.trimmedFrom = 0; App.smol.promptError = ''; renderSmol(); },
+  'smol-preset': (el) => { App.smol.prompt = el.dataset.prompt; App.smol.trimmed = false; App.smol.promptError = ''; renderSmol(); },
   'help-open': () => openHelp(),
   'help-close': () => closeHelp(),
   'probe-rerun': (el) => App.probe.run(el.dataset.name),
 };
 
-// A prompt field's state is the kept text plus the length it was cut from (0 when not cut).
-// It changes only when the field's text changes, so reading it again never loses the notice.
-function readPromptField(field) {
-  const raw = field.value;
-  const text = raw.length > MAX_PROMPT_CHARS ? raw.slice(0, MAX_PROMPT_CHARS) : raw;
-  if (text !== raw) field.value = text;
-  return { text, trimmedFrom: raw.length > MAX_PROMPT_CHARS ? raw.length : 0 };
-}
-
-// Idempotent: applying the same field contents twice (Enter, then change, or change, then click) gives the same state.
+// Idempotent: applying the same prompt again (Enter, then change, or change, then click) keeps the
+// current samples instead of drawing new ones. "Losuj ponownie" (reroll) is the way to resample.
 function applyComparePrompt() {
   const select = qs('#cmp-select');
-  if (select.value === 'free') {
-    const field = qs('#cmp-free');
-    if (field.value !== App.bench.draft.text) App.bench.draft = readPromptField(field);
-    App.bench.text = App.bench.draft.text;
-    App.bench.trimmedFrom = App.bench.draft.trimmedFrom;
-  } else {
-    App.bench.text = EVAL_PROMPTS.find((p) => p.id === select.value).text;
-    App.bench.trimmedFrom = 0;
-  }
-  refreshBench();
+  const next = select.value === 'free'
+    ? readPromptField(qs('#cmp-free'))
+    : { text: EVAL_PROMPTS.find((p) => p.id === select.value).text, trimmed: false };
+  const bench = App.bench;
+  const unchanged = bench.parsed && next.text === bench.text && next.trimmed === bench.trimmed;
+  bench.text = next.text;
+  bench.trimmed = next.trimmed;
+  if (!unchanged) refreshBench();
   renderBench();
 }
 
@@ -6185,16 +6207,16 @@ function bindListeners() {
     if (id === 'smol-prompt') {
       const state = readPromptField(event.target);
       App.smol.prompt = state.text;
-      App.smol.trimmedFrom = state.trimmedFrom;
+      App.smol.trimmed = state.trimmed;
       if (App.smol.prompt.trim()) App.smol.promptError = '';
       setText(qs('#smol-prompt-error'), App.smol.promptError);
-      setText(qs('#smol-prompt-note'), App.smol.trimmedFrom ? t('promptTrimmed', { max: MAX_PROMPT_CHARS }) : '');
+      renderSmolPromptNote();
     } else if (id === 'cmp-free') {
-      App.bench.draft = readPromptField(event.target);
+      readPromptField(event.target); // cuts the field as the user types; applied on Enter, change or click
     } else if (id === 'next-prompt') {
       const state = readPromptField(event.target);
       App.next.text = state.text;
-      App.next.trimmedFrom = state.trimmedFrom;
+      App.next.trimmed = state.trimmed;
       App.next.appended = []; App.next.sampled = '';
       renderNext();
     } else if (id === 'next-temp') {
