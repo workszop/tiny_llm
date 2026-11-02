@@ -665,9 +665,9 @@ const SOURCE_LINKS = {
 
 
 // ─── Constants: SmolLM2 panel ───
-// Change this one constant to host the converted SFT model: a Hugging Face URL such as
+// The single source of the converted SFT model: a Hugging Face URL such as
 // https://huggingface.co/<owner>/<repo>, or any URL (relative or absolute) of a folder with the same files.
-const SMOL_SFT_URL = 'models/smollm2-135M-SFT-Only/';
+const SMOL_SFT_URL = 'https://huggingface.co/andrzej/smollm2-135M-SFT-Only-ONNX';
 const SMOL_LIB_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.min.js';
 const SMOL_LIB_SHA384 = 'xFDNfwR3J/vPYzGjMr1VSM8LHIcA+ii2Ha4x+6WAuISKpT9I0dxgF/mVQW+I0kSd';
 // Chosen by testing Instruct in headless Chrome (see spec section 10): q4 was slow and missed the answer,
@@ -677,10 +677,12 @@ const SMOL_GENERATION = { max_new_tokens: 60, do_sample: false, repetition_penal
 const SMOL_DEFAULT_PROMPT = 'What is the capital of France?';
 const SMOL_PROMPTS = ['What is the capital of France?', 'List three fruits.', 'Why is the sky blue?'];
 const SMOL_ORDER = ['base', 'sft', 'instruct'];
+// Mirrors on the andrzej account: base and Instruct copied unchanged, SFT converted locally (spec section 10).
+// bytes: ONNX weights per dtype; extra: config, generation config and tokenizer files.
 const SMOL_MODELS = {
-  base: { repo: 'onnx-community/SmolLM2-135M-ONNX', chat: false, page: 'https://huggingface.co/onnx-community/SmolLM2-135M-ONNX', bytes: { int8: 135658354, fp32: 540356186 } },
-  sft: { repo: null, chat: true, page: 'https://huggingface.co/HuggingFaceTB/smollm2-135M-SFT-Only', bytes: { int8: 164907574, fp32: 652540079 } },
-  instruct: { repo: 'HuggingFaceTB/SmolLM2-135M-Instruct', chat: true, page: 'https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct', bytes: { int8: 137147867, fp32: 540345794 } },
+  base: { repo: 'andrzej/SmolLM2-135M-ONNX', chat: false, page: 'https://huggingface.co/andrzej/SmolLM2-135M-ONNX', original: 'https://huggingface.co/onnx-community/SmolLM2-135M-ONNX', bytes: { int8: 135658354, fp32: 540356186 }, extra: 2058364 },
+  sft: { repo: null, chat: true, page: 'https://huggingface.co/andrzej/smollm2-135M-SFT-Only-ONNX', original: 'https://huggingface.co/HuggingFaceTB/smollm2-135M-SFT-Only', bytes: { int8: 164907574, fp32: 652540079 }, extra: 3527211 },
+  instruct: { repo: 'andrzej/SmolLM2-135M-Instruct-ONNX', chat: true, page: 'https://huggingface.co/andrzej/SmolLM2-135M-Instruct-ONNX', original: 'https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct', bytes: { int8: 137147867, fp32: 540345794 }, extra: 2109313 },
 };
 const SMOL_WORKER_SOURCE = `
 let generator = null;
@@ -761,8 +763,6 @@ self.onmessage = async (event) => {
   }
 };
 `;
-// config, generation config, tokenizer and vocabulary files that come with every model.
-const SMOL_TOKENIZER_BYTES = 3400000;
 
 // Lucide icons (ISC licence) inlined so badges never depend on a CDN.
 const ICON_PATHS = {"brain":"<path d=\"M12 18V5\"/><path d=\"M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4\"/><path d=\"M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5\"/><path d=\"M17.997 5.125a4 4 0 0 1 2.526 5.77\"/><path d=\"M18 18a4 4 0 0 0 2-7.464\"/><path d=\"M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517\"/><path d=\"M6 18a4 4 0 0 1-2-7.464\"/><path d=\"M6.003 5.125a4 4 0 0 0-2.526 5.77\"/>",
@@ -1339,7 +1339,7 @@ const T = {
   smolFoldLineage: 'Pochodzenie SFT-Only jest niepotwierdzone: tekst karty wskazuje SmolLM2-135M, a metadane 135M-lc-100k-rope-12B. Karta Instruct wskazuje jako bazę SmolLM2-135M i nie wymienia SFT-Only.',
   smolFoldMeasure: 'Nasz pomiar wag (norma L2 różnicy do normy wag): SFT-Only i Instruct różnią się o około 0,008%, a SFT-Only i SmolLM2-135M o około 8,6%. To mocna wskazówka, że Instruct powstał z SFT-Only lub bardzo bliskiej kopii, ale nie dowód. Odpowiedzi tych kolumn różnią się też przez szablon: Instruct dodaje własny komunikat systemowy, co widać w polu „Co dostał model”.',
   smolFoldLicence: 'SFT-Only nie ma znacznika licencji na stronie modelu. SmolLM2-135M i Instruct mają Apache 2.0, a bazowa kopia ONNX nie ma własnego znacznika.',
-  smolFoldConvert: 'SFT-Only nie ma publicznej wersji ONNX. Przekonwertowaliśmy ją lokalnie i nigdzie jej nie wysłaliśmy, więc działa tylko z lokalnego serwera z plikami w folderze models.',
+  smolFoldConvert: 'Autorzy SFT-Only nie opublikowali wersji ONNX. Przekonwertowaliśmy ją i razem z dwiema pozostałymi wersjami umieściliśmy kopie na koncie andrzej w Hugging Face. Bazę i Instruct skopiowano bez zmian. Źródła podają kopię i oryginał.',
   smolPromptLabel: 'Prompt po angielsku',
   smolPromptEmpty: 'Wpisz prompt: pusty nie daje modelom żadnego kontekstu.',
   smolGenerate: 'Generuj we wszystkich gotowych kolumnach',
@@ -1366,6 +1366,9 @@ const T = {
   smolState_error: 'błąd',
   smolState_unavailable: 'niedostępny',
   smolUnavailableHost: 'Ta wersja nie jest dostępna: nie ma publicznej kopii ONNX, a na tym serwerze nie ma plików z lokalnej konwersji. Nie zastępujemy jej innym modelem.',
+  smolUnavailableFetch: 'Tej wersji nie udało się pobrać z kopii w Hugging Face. Możesz spróbować ponownie. Nie zastępujemy jej innym modelem.',
+  smolMirror: 'kopia',
+  smolOriginal: 'oryginał',
   smolUnavailableHttp: 'Ta wersja nie jest dostępna przy otwarciu z pliku: lokalna konwersja wymaga serwera http, a publicznej kopii ONNX nie ma. Nie zastępujemy jej innym modelem.',
   smolErrorShown: 'Nie udało się: {message}',
   smolErrorWorker: 'Błąd procesu w tle.',
@@ -3830,14 +3833,14 @@ function smolModelMessage(key) {
 
 function smolDownloadBytes(key) {
   const dtype = SMOL_DTYPE[App.smol.engine];
-  return SMOL_MODELS[key].bytes[dtype] + SMOL_TOKENIZER_BYTES;
+  return SMOL_MODELS[key].bytes[dtype] + SMOL_MODELS[key].extra;
 }
 
 function smolMegabytes(bytes) { return `${Math.round(bytes / 1000000).toLocaleString('pl-PL')} MB`; }
 
 function smolLoad(key) {
   const column = App.smol.columns[key];
-  if (!['idle', 'error'].includes(column.state)) return;
+  if (!(['idle', 'error'].includes(column.state) || (column.state === 'unavailable' && column.errorKind === 'fetch-failed'))) return;
   Object.assign(column, { state: 'downloading', progress: 0, loaded: 0, total: 0, error: '', errorKind: '', output: '', input: '', fallback: '' });
   let worker;
   try {
@@ -3858,7 +3861,9 @@ function smolFail(key, kind, message) {
   const column = App.smol.columns[key];
   if (column.worker) column.worker.terminate();
   column.worker = null;
-  column.state = 'error';
+  // The SFT copy exists only as a mirror, so a failed download marks it unavailable rather than broken.
+  column.state = key === 'sft' && kind === 'download' ? 'unavailable' : 'error';
+  if (column.state === 'unavailable') kind = 'fetch-failed';
   column.errorKind = kind;
   column.error = message;
   if (App.smol.running === key) App.smol.running = null;
@@ -4046,10 +4051,10 @@ function smolProbeChecks(add) {
     reset();
     const size = () => qs('[data-action="smol-load"]', column('instruct')).textContent;
     const gpuSize = size();
-    const gpuOk = gpuSize.includes(smolMegabytes(SMOL_MODELS.instruct.bytes.fp32 + SMOL_TOKENIZER_BYTES));
+    const gpuOk = gpuSize.includes(smolMegabytes(SMOL_MODELS.instruct.bytes.fp32 + SMOL_MODELS.instruct.extra));
     smolSetEngine('wasm');
     const wasmSize = size();
-    const wasmOk = wasmSize.includes(smolMegabytes(SMOL_MODELS.instruct.bytes.int8 + SMOL_TOKENIZER_BYTES));
+    const wasmOk = wasmSize.includes(smolMegabytes(SMOL_MODELS.instruct.bytes.int8 + SMOL_MODELS.instruct.extra));
     const engineAttr = qs('[data-smol]').getAttribute('data-engine') === 'wasm';
     restore();
     return { ok: gpuOk && wasmOk && engineAttr, value: `WebGPU: ${gpuSize}; WASM: ${wasmSize}` };
@@ -4062,9 +4067,13 @@ function smolProbeChecks(add) {
     const shown = state('sft') === 'unavailable' && !column('sft').hidden && qs('.smol-note', column('sft')).textContent.length > 20 && qs('[data-action="smol-load"]', column('sft')).disabled;
     const ignored = (() => { smolLoad('sft'); return state('sft') === 'unavailable'; })();
     const source = smolSftSource();
-    const constantOk = source.remote === false && source.model === 'models/smollm2-135M-SFT-Only' && source.host.endsWith('/');
+    const constantOk = source.remote === true && source.model === 'andrzej/smollm2-135M-SFT-Only-ONNX';
+    reset({ sft: 'fail-load' });
+    smolLoad('sft');
+    await until(() => state('sft') === 'unavailable');
+    const fetchFailed = column('sft').getAttribute('data-error-kind') === 'fetch-failed' && !qs('[data-action="smol-load"]', column('sft')).hidden && qs('.smol-note', column('sft')).textContent.length > 20;
     restore();
-    return { ok: shown && ignored && constantOk, value: `widoczna:${shown} bez pobierania:${ignored} stała:${constantOk}` };
+    return { ok: shown && ignored && constantOk && fetchFailed, value: `widoczna:${shown} bez pobierania:${ignored} stała:${constantOk} nieudane pobranie:${fetchFailed}` };
   });
 }
 
@@ -5579,9 +5588,10 @@ function renderSmolColumn(key) {
   setText(qs('.smol-state', el), t(`smolState_${column.state}`));
   const loadBtn = qs('[data-action="smol-load"]', el);
   const busy = column.state === 'downloading' || column.state === 'generating';
-  loadBtn.hidden = column.state === 'ready' || column.state === 'unavailable' || busy;
-  loadBtn.disabled = column.state === 'unavailable';
-  setText(loadBtn, t(column.state === 'error' ? 'smolRetry' : 'smolDownload', { size: smolMegabytes(smolDownloadBytes(key)) }));
+  const retryable = column.state === 'error' || (column.state === 'unavailable' && column.errorKind === 'fetch-failed');
+  loadBtn.hidden = column.state === 'ready' || (column.state === 'unavailable' && !retryable) || busy;
+  loadBtn.disabled = column.state === 'unavailable' && !retryable;
+  setText(loadBtn, t(retryable ? 'smolRetry' : 'smolDownload', { size: smolMegabytes(smolDownloadBytes(key)) }));
   qs('[data-action="smol-cancel"]', el).hidden = !busy;
   const progressRow = qs('.smol-progress', el);
   progressRow.hidden = column.state !== 'downloading';
@@ -5589,7 +5599,8 @@ function renderSmolColumn(key) {
   setAttr(qs('.smol-progress-track', el), 'aria-valuenow', column.progress);
   setText(qs('.smol-progress-text', el), column.total ? `${column.progress}% (${smolMegabytes(column.loaded)} z ${smolMegabytes(column.total)})` : t('smolStarting'));
   let note = '';
-  if (column.state === 'unavailable') note = t(column.errorKind === 'needs-http' ? 'smolUnavailableHttp' : 'smolUnavailableHost');
+  if (column.state === 'unavailable') note = t({ 'needs-http': 'smolUnavailableHttp', 'fetch-failed': 'smolUnavailableFetch' }[column.errorKind] || 'smolUnavailableHost');
+  if (column.state === 'unavailable' && column.error) note += ` ${t('smolErrorShown', { message: column.error })}`;
   setText(qs('.smol-note', el), note);
   setText(qs('.smol-error', el), column.state === 'error' ? t('smolErrorShown', { message: column.error }) : '');
   let backendText = '';
@@ -5653,7 +5664,7 @@ function viewSmolHtml() {
       </div>
     </div>`).join('');
   const sources = [['base', 'smolName_base'], ['sft', 'smolName_sft'], ['instruct', 'smolName_instruct']]
-    .map(([key, label]) => `<li><a href="${SMOL_MODELS[key].page}" target="_blank" rel="noopener">${t(label)}: ${SMOL_MODELS[key].page.replace('https://huggingface.co/', '')}</a></li>`).join('');
+    .map(([key, label]) => `<li>${t(label)}: <a href="${SMOL_MODELS[key].page}" target="_blank" rel="noopener">${t('smolMirror')} ${SMOL_MODELS[key].page.replace('https://huggingface.co/', '')}</a>; <a href="${SMOL_MODELS[key].original}" target="_blank" rel="noopener">${t('smolOriginal')} ${SMOL_MODELS[key].original.replace('https://huggingface.co/', '')}</a></li>`).join('');
   const extra = [['https://huggingface.co/HuggingFaceTB/SmolLM2-135M', 'smolSrcParent'], ['https://huggingface.co/datasets/HuggingFaceH4/ultrafeedback_binarized', 'smolSrcBinarized'], ['https://huggingface.co/datasets/openbmb/UltraFeedback', 'smolSrcUltra'], ['https://arxiv.org/abs/2310.01377', 'smolSrcUltraPaper'], ['https://arxiv.org/abs/2305.18290', 'smolSrcDpo'], ['https://arxiv.org/abs/2502.02737', 'smolSrcPaper'], ['https://github.com/huggingface/alignment-handbook/tree/main/recipes/smollm2', 'smolSrcRecipe']]
     .map(([url, label]) => `<li><a href="${url}" target="_blank" rel="noopener">${t(label)}</a></li>`).join('');
   return `<section class="sec"><div class="wrap">
