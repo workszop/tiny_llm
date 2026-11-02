@@ -543,6 +543,7 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .quiz-review li { display: grid; gap: 4px; }
 .quiz-review p { margin: 0; font-size: var(--body-sm); color: var(--ink-2); }
 .quiz-review-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 600; color: var(--ink); }
+#demo-rows tr:focus-visible, #demo-rows tr:focus { outline: 3px solid transparent; box-shadow: var(--focus-ring); }
 
 </style>
 </head>
@@ -3350,6 +3351,52 @@ function probeChecks() {
     const labelled = prev.getAttribute('aria-label') && next.getAttribute('aria-label') && prev.tagName === 'BUTTON';
     return { ok: consistent && !!labelled, value: `przewijanie:${overflow} strzałki zgodne:${consistent}` };
   });
+  add('long-prompt-model', () => {
+    const field = qs('#next-prompt');
+    const keep = App.next.text;
+    field.value = 'kot '.repeat(2500);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    const ok = field.value.length === MAX_PROMPT_CHARS && qs('#next-messages').textContent.includes(String(MAX_PROMPT_CHARS)) && qsa('#next-tokens .unseen').length > 0;
+    field.value = keep; App.next.text = keep; App.next.trimmed = false; App.next.appended = []; renderNext();
+    return { ok, value: `komunikat i niewidoczne tokeny: ${ok}` };
+  });
+  add('long-prompt-compare', () => {
+    const select = qs('#cmp-select'); const field = qs('#cmp-free');
+    select.value = 'free'; select.dispatchEvent(new Event('change', { bubbles: true }));
+    field.value = 'kot '.repeat(2500);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    const typed = field.value.length === MAX_PROMPT_CHARS && qs('#cmp-messages').textContent.includes(String(MAX_PROMPT_CHARS)) && qsa('#cmp-tokens .unseen').length > 0;
+    field.value = 'pies '.repeat(2000);
+    applyComparePrompt();
+    const pasted = qs('#cmp-messages').textContent.includes(String(MAX_PROMPT_CHARS));
+    field.value = '';
+    select.value = 'francji'; select.dispatchEvent(new Event('change', { bubbles: true }));
+    const cleared = !qs('#cmp-messages').textContent.includes(String(MAX_PROMPT_CHARS));
+    return { ok: typed && pasted && cleared, value: `wpisany:${typed} wklejony:${pasted} po zmianie:${cleared}` };
+  });
+  add('long-prompt-smol', () => {
+    const field = qs('#smol-prompt'); const keep = App.smol.prompt;
+    field.value = 'cat '.repeat(2500);
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    const ok = field.value.length === MAX_PROMPT_CHARS && App.smol.prompt.length === MAX_PROMPT_CHARS && qs('#smol-prompt-note').textContent.includes(String(MAX_PROMPT_CHARS));
+    field.value = keep; App.smol.prompt = keep; App.smol.trimmed = false; setText(qs('#smol-prompt-note'), '');
+    return { ok, value: `komunikat:${ok}` };
+  });
+  add('demo-paging-focus', () => {
+    const keep = App.demoShown;
+    const panel = qs('[data-view-panel="sft"]'); const hidden = panel.hidden; panel.hidden = false;
+    App.demoShown = DEMO_PAGE; renderDemoTable();
+    const box = qs('.demo-box-table'); box.scrollTop = 0;
+    qs('#demo-more').click();
+    const first = qsa('#demo-rows tr')[DEMO_PAGE];
+    const focused = document.activeElement === first;
+    const top = first.getBoundingClientRect().top; const boxRect = box.getBoundingClientRect();
+    const visible = box.scrollHeight <= box.clientHeight + 2 || (top >= boxRect.top - 2 && top < boxRect.bottom);
+    const announced = refs.live.textContent.includes(String(2 * DEMO_PAGE));
+    panel.hidden = hidden; App.demoShown = keep; renderDemoTable();
+    return { ok: focused && visible && announced, value: `fokus:${focused} widoczny:${visible} ogłoszony:${announced}` };
+  });
   add('quiz-review', () => {
     const keep = App.quiz;
     App.quiz = { index: QUIZ.length - 1, selected: null, checked: false, score: 1, finished: true, answers: QUIZ.map((item, i) => (i === 0 ? item.correct : (item.correct + 1) % item.options.length)) };
@@ -4028,8 +4075,12 @@ function smolMessage(key, msg) {
   const column = App.smol.columns[key];
   if (!column.worker) return;
   if (msg.type === 'progress') {
-    column.loaded = msg.loaded; column.total = msg.total;
-    column.progress = msg.total ? Math.min(100, Math.round(100 * msg.loaded / msg.total)) : 0;
+    // The worker sums every file seen so far; the bar measures that against the column's known total,
+    // so a finished config file can never look like a finished download.
+    const expected = smolDownloadBytes(key);
+    column.loaded = msg.loaded;
+    column.total = Math.max(expected, msg.total);
+    column.progress = Math.min(99, Math.floor(100 * msg.loaded / column.total));
     renderSmolColumn(key);
   } else if (msg.type === 'ready') {
     Object.assign(column, { state: 'ready', progress: 100, backend: msg.backend, dtype: msg.dtype, fallback: msg.fallback || '', loadMs: msg.loadMs || 0 });
@@ -4117,7 +4168,7 @@ function createMockSmolWorker(behaviour) {
       mock.sent.push(msg);
       if (msg.type === 'load') {
         if (behaviour === 'hang') return;
-        mock.emit({ type: 'progress', loaded: 50, total: 100 }, 1);
+        mock.emit({ type: 'progress', loaded: 1035, total: 1035 }, 1);
         if (behaviour === 'fail-load') { mock.emit({ type: 'error', message: 'mock-failure' }, 2); return; }
         const backend = behaviour === 'gpu-fail' ? 'wasm' : msg.device;
         mock.emit({ type: 'ready', backend, dtype: msg.dtype[backend], fallback: behaviour === 'gpu-fail' ? 'mock-gpu-error' : '', loadMs: 1 }, 3);
@@ -4164,6 +4215,8 @@ function smolProbeChecks(add) {
     const created = reset();
     smolLoad('base');
     const downloading = state('base') === 'downloading';
+    await until(() => Number(column('base').getAttribute('data-loaded')) > 0 || state('base') === 'ready');
+    const notFull = state('base') === 'ready' || (Number(column('base').getAttribute('data-progress')) < 5 && Number(column('base').getAttribute('data-total')) === smolDownloadBytes('base'));
     await until(() => state('base') === 'ready');
     const backend = column('base').getAttribute('data-backend') === 'webgpu' && column('base').getAttribute('data-dtype') === SMOL_DTYPE.webgpu;
     smolLoad('instruct');
@@ -4178,7 +4231,7 @@ function smolProbeChecks(add) {
     const chat = instructMsg.chat === true && column('instruct').getAttribute('data-input') === `<chat>${prompt}`;
     const settings = JSON.stringify(baseMsg.settings) === JSON.stringify(SMOL_GENERATION);
     restore();
-    return { ok: downloading && backend && serial && raw && chat && settings, value: `pobieranie:${downloading} backend:${backend} po kolei:${serial} surowy:${raw} szablon:${chat} ustawienia:${settings}` };
+    return { ok: downloading && notFull && backend && serial && raw && chat && settings, value: `pobieranie:${downloading} postęp po małym pliku:${notFull} backend:${backend} po kolei:${serial} surowy:${raw} szablon:${chat} ustawienia:${settings}` };
   });
   add('smol-cancel', async () => {
     const created = reset({ base: 'hang', instruct: 'hang-generate' });
@@ -4589,7 +4642,7 @@ function renderNext() {
   if (input.value !== App.next.text && document.activeElement !== input) input.value = App.next.text;
   const messages = [];
   if (parsed.empty) messages.push(t('promptEmpty'));
-  if (parsed.trimmed) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
+  if (parsed.trimmed || App.next.trimmed) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
   if (ids.length > CONTEXT_LEN) messages.push(t('unseenNote', { n: CONTEXT_LEN }));
@@ -4715,9 +4768,10 @@ function renderBench() {
 
   const messages = [];
   if (parsed.empty) messages.push(t('promptEmpty'));
-  if (parsed.trimmed) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
+  if (parsed.trimmed || bench.trimmed) messages.push(t('promptTrimmed', { max: MAX_PROMPT_CHARS }));
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
+  if (!parsed.empty && parsed.ids.length + 1 > CONTEXT_LEN) messages.push(t('unseenNote', { n: CONTEXT_LEN }));
   if (!parsed.empty && !parsed.expect) messages.push(t('freeNote'));
   setText(qs('#cmp-messages'), messages.join(' '));
   qs('#cmp-messages').classList.toggle('is-error', parsed.empty);
@@ -5337,6 +5391,22 @@ function renderDemoTable() {
   labelTables(holder);
 }
 
+// New rows land below the box's fold, so the box scrolls to the first new row, focus moves there and the count is announced.
+function showMoreDemos(count) {
+  const before = qsa('#demo-rows tr').length;
+  App.demoShown = count;
+  renderDemoTable();
+  const rows = qsa('#demo-rows tr');
+  const first = rows[before];
+  if (!first) return;
+  const box = qs('.demo-box-table');
+  const head = qs('#demo-table thead');
+  box.scrollTop = first.offsetTop - (head && head.offsetParent === first.offsetParent ? head.offsetHeight : 0);
+  first.tabIndex = -1;
+  first.focus({ preventScroll: box.scrollHeight > box.clientHeight + 2 });
+  announce(qs('#demo-count').textContent);
+}
+
 // ─── Render: view markup ───
 function chainHtml(keys) {
   return `<ol class="chain">${keys.map((key) => `<li class="link">${t(key)}</li>`).join('')}</ol>`;
@@ -5538,7 +5608,7 @@ function viewSftHtml() {
         <div class="row-head"><span class="badge tone-yellow">${ic('table')}</span><h3>${t('sftTableRow')}</h3></div>
         <div class="tile"><span class="badge tone-yellow">${ic('shuffle')}</span><h4>${t('sftTableTile')}</h4><p>${t('sftTableText')}</p></div>
       </div>
-      <div class="card lab" data-nobudget data-demo-table data-shown="0" data-total="0"><div class="card-head"><span class="edu-small" id="demo-count"></span></div>
+      <div class="card lab" data-nobudget data-demo-table data-shown="0" data-total="0"><div class="card-head"><span class="edu-small" id="demo-count" aria-live="polite"></span></div>
         <div class="card-body table-card scroll-box demo-box-table" tabindex="0">
         <table id="demo-table"><thead><tr><th>${t('demoPrompt')}</th><th>${t('demoResponse')}</th><th>${t('demoStyle')}</th><th>${t('demoHeldOut')}</th></tr></thead><tbody id="demo-rows"></tbody></table>
         </div>
@@ -5948,7 +6018,8 @@ function viewSmolHtml() {
       <div class="card lab" data-smol data-prompt="" data-engine="wasm" data-queue="[]" data-running="" data-settings="{}" data-nobudget><div class="card-body">
         <div class="field"><label for="smol-prompt">${t('smolPromptLabel')}</label>
           <input class="input" id="smol-prompt" type="text" lang="en" autocomplete="off" spellcheck="false">
-          <p class="err" id="smol-prompt-error" role="alert"></p></div>
+          <p class="err" id="smol-prompt-error" role="alert"></p>
+          <p class="reason" id="smol-prompt-note" aria-live="polite"></p></div>
         <div class="edu-seg wrap-seg" role="group" aria-label="${t('smolPromptLabel')}">${presets}</div>
         <div class="field"><span class="label" id="smol-engine-label">${t('smolEngine')}</span>
           <div class="edu-seg wrap-seg" role="group" aria-labelledby="smol-engine-label"><button type="button" data-action="smol-engine" data-engine="webgpu">WebGPU</button><button type="button" data-action="smol-engine" data-engine="wasm">WASM</button></div>
@@ -6009,8 +6080,8 @@ const ACTIONS = {
   own: (el) => labelOwn(el.dataset.choice),
   'mini-next': () => { App.miniAt += 7; renderMini(); },
   'neigh-checkpoint': (el) => { App.neighbours.checkpoint = el.dataset.ck; renderNeighbours(); },
-  'demo-more': () => { App.demoShown += DEMO_PAGE; renderDemoTable(); },
-  'demo-all': () => { App.demoShown = Infinity; renderDemoTable(); },
+  'demo-more': () => showMoreDemos(App.demoShown + DEMO_PAGE),
+  'demo-all': () => showMoreDemos(Infinity),
   'nav-scroll': (el) => scrollNav(Number(el.dataset.dir)),
   'corpus-genre': (el) => { App.corpusGenre = el.dataset.genre; renderCorpus(); },
   'quiz-check': () => {
@@ -6055,8 +6126,15 @@ const ACTIONS = {
 
 function applyComparePrompt() {
   const select = qs('#cmp-select');
-  if (select.value === 'free') App.bench.text = qs('#cmp-free').value;
-  else App.bench.text = EVAL_PROMPTS.find((p) => p.id === select.value).text;
+  App.bench.trimmed = false;
+  if (select.value === 'free') {
+    const field = qs('#cmp-free');
+    const parsed = parsePrompt(field.value);
+    if (parsed.trimmed) field.value = parsed.value;
+    App.bench.text = parsed.value;
+    App.bench.trimmed = parsed.trimmed || App.bench.pendingTrim === true;
+  } else App.bench.text = EVAL_PROMPTS.find((p) => p.id === select.value).text;
+  App.bench.pendingTrim = false;
   refreshBench();
   renderBench();
 }
@@ -6085,13 +6163,21 @@ function bindListeners() {
   document.addEventListener('input', (event) => {
     const id = event.target.id;
     if (id === 'smol-prompt') {
+      const trimmed = event.target.value.length > MAX_PROMPT_CHARS;
       App.smol.prompt = event.target.value.slice(0, MAX_PROMPT_CHARS);
+      if (trimmed) event.target.value = App.smol.prompt;
+      App.smol.trimmed = trimmed;
       if (App.smol.prompt.trim()) App.smol.promptError = '';
       setText(qs('#smol-prompt-error'), App.smol.promptError);
+      setText(qs('#smol-prompt-note'), trimmed ? t('promptTrimmed', { max: MAX_PROMPT_CHARS }) : '');
+    } else if (id === 'cmp-free') {
+      // Typing a long text: remember the cut until the comparison runs, so the message is not lost.
+      if (event.target.value.length > MAX_PROMPT_CHARS) { event.target.value = event.target.value.slice(0, MAX_PROMPT_CHARS); App.bench.pendingTrim = true; }
     } else if (id === 'next-prompt') {
-      App.next.text = event.target.value;
-      App.next.appended = []; App.next.sampled = '';
       const parsed = parsePrompt(event.target.value);
+      App.next.trimmed = parsed.trimmed;
+      App.next.text = parsed.value;
+      App.next.appended = []; App.next.sampled = '';
       if (parsed.trimmed) event.target.value = parsed.value;
       renderNext();
     } else if (id === 'next-temp') {
@@ -6106,8 +6192,6 @@ function bindListeners() {
       qs('#cmp-free-wrap').hidden = !App.bench.freeMode;
       if (!App.bench.freeMode) applyComparePrompt();
     } else if (id === 'cmp-free') {
-      const parsed = parsePrompt(event.target.value);
-      if (parsed.trimmed) event.target.value = parsed.value;
       applyComparePrompt();
     } else if (id === 'neigh-token') {
       renderNeighbours();
