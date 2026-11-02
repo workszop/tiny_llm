@@ -238,7 +238,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .edu-logo { width: 64px; height: 64px; display: block; margin-right: -6px; }
 .edu-wordmark { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em; color: var(--ink); }
 .nav { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; justify-content: flex-end; }
-.nav-pill { border-radius: var(--r-pill); padding: 8px 12px; color: var(--ink-2); text-decoration: none; font-weight: 500; font-size: var(--body-sm); transition: background-color .15s; white-space: nowrap; }
+.nav-pill { border-radius: var(--r-pill); padding: 8px 9px; color: var(--ink-2); text-decoration: none; font-weight: 500; font-size: var(--body-sm); transition: background-color .15s; white-space: nowrap; }
 .nav-pill:hover { background: var(--paper-2); }
 .nav-pill.active { background: var(--yellow); color: var(--yellow-ink); font-weight: 600; }
 
@@ -473,7 +473,16 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
   .sec-head h2 { flex: 1; min-width: 0; font-size: var(--h3); }
   .sec-head::after { flex: 1 0 100%; }
   .stats { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .table-card table { min-width: 560px; }
+  /* Tables become stacked rows: one card per row, each cell labelled with its column, so nothing hides off-screen. */
+  .table-card table, .table-card tbody, .table-card tr, .table-card td { display: block; width: 100%; }
+  .table-card thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .table-card tr { padding: 8px 0; border-bottom: 1px solid var(--line-2); }
+  .table-card tbody tr:nth-child(even) td { background: transparent; }
+  .table-card td { display: grid; grid-template-columns: minmax(6.5rem, 38%) minmax(0, 1fr); gap: 10px; padding: 4px 14px; border: none; text-align: left; overflow-wrap: anywhere; }
+  .table-card td::before { content: attr(data-label); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+  .table-card td.num { text-align: left; }
+  .table-card td:first-child { display: block; color: var(--ink); font-weight: 600; }
+  .table-card td:first-child::before { display: none; }
   .bar { grid-template-columns: minmax(60px, 100px) minmax(0, 1fr) 50px; min-height: 40px; }
 }
 
@@ -514,6 +523,15 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .smol-progress { display: grid; gap: 4px; }
 .smol-column .edu-overline { margin: 0; }
 .smol-error { overflow-wrap: anywhere; }
+
+/* ─── Header between phone and wide desktop: nav gets its own full row, one line, scrolling if needed ─── */
+@media (min-width: 769px) and (max-width: 1279px) {
+  .nav { flex: 1 0 100%; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; padding-bottom: 4px; }
+}
+.quiz-review { margin: 0; padding-left: 22px; display: grid; gap: 12px; }
+.quiz-review li { display: grid; gap: 4px; }
+.quiz-review p { margin: 0; font-size: var(--body-sm); color: var(--ink-2); }
+.quiz-review-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-weight: 600; color: var(--ink); }
 
 </style>
 </head>
@@ -832,6 +850,7 @@ const T = {
   navPrawda: 'Co jest prawdziwe',
   navQuiz: 'Sprawdź się',
   navSmol: 'SmolLM2',
+  navTitle: '{name} (skrót: {key})',
   navKrokPretraining: 'Krok: pretraining',
   navKrokSft: 'Krok: SFT',
   navKrokRl: 'Krok: RL',
@@ -1176,6 +1195,12 @@ const T = {
   quizWrong: 'Nie tym razem.',
   quizScore: 'Wynik: {score} z {total}',
   quizScoreLive: 'Wynik: {score} z {total}.',
+  quizDone: 'Koniec quizu',
+  quizReviewTitle: 'Twoje odpowiedzi',
+  quizYourAnswer: 'Twoja odpowiedź: {answer}',
+  quizRightAnswer: 'Poprawna: {answer}',
+  quizItemGood: 'dobrze',
+  quizItemBad: 'źle',
   q1: 'Co model robi na każdym kroku generowania?',
   q1a: 'Liczy rozkład szans następnego tokenu i wybiera jeden z nich',
   q1b: 'Wyszukuje gotową odpowiedź w bazie zdań',
@@ -1286,6 +1311,10 @@ const T = {
   stepSrcRl: 'po RL',
   stepNeedsSft: 'Ten krok startuje z wag po pretrainingu, więc najpierw wytrenuj pretraining.',
   stepNeedsRl: 'Ten krok startuje z wag po SFT, więc najpierw wytrenuj SFT.',
+  stepCaptionWaiting: 'Opis kroku pojawi się, gdy będą wagi startowe.',
+  stepCaptionPreparing: 'Opis kroku pojawi się, gdy model nagrody będzie gotowy.',
+  stepDemoWaiting: 'Przykład pojawi się po pretrainingu.',
+  stepRlPromptWaiting: 'pojawi się po SFT',
   stepPreparing: 'Model nagrody uczy się na 60 symulowanych parach. To potrwa chwilę.',
   stepPhaseOf: 'Etap {n} z {total}',
   stepExampleOf: 'Przykład {n}, aktualizacje na kopii: {updates}',
@@ -1516,7 +1545,7 @@ const App = {
   rl: { source: 'rzeczowy', own: [], equalCount: 0, ownPair: null, ownReward: null, reward: null, simPairs: 0, mainLabeller: '', lastPairs: null },
   miniAt: 0,
   corpusGenre: 'all',
-  quiz: { index: 0, selected: null, checked: false, score: 0, finished: false },
+  quiz: { index: 0, selected: null, checked: false, score: 0, finished: false, answers: [] },
   helpReturn: null,
   probe: null,
   probeChecks: [],
@@ -3255,6 +3284,38 @@ function probeChecks() {
     probeReset();
     return { ok: next && back && on && off && running && stopped, value: `N:${next} B:${back} A:${on}/${off} po wyjściu:${stopped}` };
   });
+  add('table-labels', () => {
+    const missing = [];
+    qsa('#views table').forEach((table) => {
+      const heads = qsa('thead th', table).map((th) => th.textContent.trim());
+      qsa('tbody tr', table).forEach((row) => Array.from(row.children).forEach((cell, i) => { if (cell.getAttribute('data-label') !== heads[i]) missing.push(table.id || table.closest('[data-view-panel]').dataset.viewPanel); }));
+    });
+    return { ok: missing.length === 0, value: missing.length ? `bez etykiet: ${Array.from(new Set(missing)).join(', ')}` : 'każda komórka ma nazwę kolumny' };
+  });
+  add('nav-titles', () => {
+    const bad = qsa('.nav-pill').filter((pill) => !pill.title.includes(pill.textContent.trim()) || !/skrót: \S/.test(pill.title)).map((pill) => pill.title);
+    return { ok: bad.length === 0, value: bad.length ? bad.join('; ') : qs('.nav-pill').title };
+  });
+  add('step-placeholders', async () => {
+    probeReset();
+    ['sft', 'rl'].forEach(renderStepView);
+    const sftCaption = qs('#step-caption-sft').textContent.trim().length > 0 && qs('#step-demo-prompt').textContent.trim().length > 0;
+    const rlCaption = qs('#step-caption-rl').textContent.trim().length > 0 && qs('#step-rl-prompt').textContent.trim().length > 0;
+    probeReset();
+    return { ok: sftCaption && rlCaption, value: `SFT:${sftCaption} RL:${rlCaption}` };
+  });
+  add('quiz-review', () => {
+    const keep = App.quiz;
+    App.quiz = { index: QUIZ.length - 1, selected: null, checked: false, score: 1, finished: true, answers: QUIZ.map((item, i) => (i === 0 ? item.correct : (item.correct + 1) % item.options.length)) };
+    renderQuiz();
+    const scoreCount = (qs('#quiz-root').textContent.match(/Wynik:/g) || []).length;
+    const items = qsa('#quiz-review > li');
+    const good = items[0] && items[0].dataset.correct === 'true' && !items[0].textContent.includes('Poprawna:');
+    const bad = items[1] && items[1].dataset.correct === 'false' && items[1].textContent.includes('Poprawna:') && items[1].textContent.includes(t(QUIZ[1].why));
+    App.quiz = keep;
+    renderQuiz();
+    return { ok: scoreCount === 1 && items.length === QUIZ.length && good && bad, value: `wynik raz:${scoreCount === 1} pozycje:${items.length} dobra:${good} zła:${bad}` };
+  });
   smolProbeChecks(add);
   add('dom-contract', () => {
     const problems = [];
@@ -4646,6 +4707,7 @@ function renderMetrics() {
       body.appendChild(row);
     });
   });
+  labelTables(holder);
   const pre = App.stages.pretrain.metrics; const sft = App.stages.sft.metrics; const rl = App.stages.rl.metrics;
   setText(qs('#sft-metric'), pre && sft ? t('metricFormBefore', { a: fmt(pre.trained.form, 1), b: fmt(sft.trained.form, 1) }) : '');
   setText(qs('#rl-metric'), sft && rl ? t('metricPreferred', { a: fmt(sft.trained.preferred, 1), b: fmt(rl.trained.preferred, 1) }) : '');
@@ -4805,7 +4867,7 @@ function renderQuiz() {
   const body = qs('#quiz-body');
   body.textContent = '';
   const total = QUIZ.length;
-  setText(qs('#quiz-progress-text'), quiz.finished ? t('quizScore', { score: quiz.score, total }) : t('quizProgress', { n: quiz.index + 1, total }));
+  setText(qs('#quiz-progress-text'), quiz.finished ? t('quizDone') : t('quizProgress', { n: quiz.index + 1, total }));
   qs('#quiz-progress-fill').style.width = `${Math.round(100 * (quiz.finished ? total : quiz.index) / total)}%`;
   setAttr(qs('#quiz-root'), 'data-quiz-index', quiz.index);
   setAttr(qs('#quiz-root'), 'data-quiz-score', quiz.score);
@@ -4813,7 +4875,25 @@ function renderQuiz() {
   if (quiz.finished) {
     const score = document.createElement('p'); score.className = 'quiz-score'; score.id = 'quiz-score'; score.textContent = t('quizScore', { score: quiz.score, total });
     const again = document.createElement('button'); again.type = 'button'; again.className = 'edu-btn'; again.dataset.action = 'quiz-retake'; again.textContent = t('quizRetake');
-    body.append(score, again);
+    const head = document.createElement('p'); head.className = 'edu-overline'; head.textContent = t('quizReviewTitle');
+    const list = document.createElement('ol'); list.className = 'quiz-review'; list.id = 'quiz-review';
+    QUIZ.forEach((item, i) => {
+      const chosen = quiz.answers[i];
+      const good = chosen === item.correct;
+      const li = document.createElement('li');
+      li.setAttribute('data-correct', good);
+      const top = document.createElement('div'); top.className = 'quiz-review-head';
+      const chip = document.createElement('span'); chip.className = `edu-chip ${good ? 'tone-green' : 'tone-red'}`; chip.textContent = t(good ? 'quizItemGood' : 'quizItemBad');
+      const q = document.createElement('span'); q.className = 'quiz-review-q'; q.textContent = t(item.q);
+      top.append(chip, q);
+      const lines = [t('quizYourAnswer', { answer: chosen === undefined ? '-' : t(item.options[chosen]) })];
+      if (!good) lines.push(t('quizRightAnswer', { answer: t(item.options[item.correct]) }));
+      lines.push(t(item.why));
+      li.appendChild(top);
+      lines.forEach((text) => { const p = document.createElement('p'); p.textContent = text; li.appendChild(p); });
+      list.appendChild(li);
+    });
+    body.append(score, head, list, again);
     return;
   }
   const item = QUIZ[quiz.index];
@@ -4899,6 +4979,21 @@ function renderAll() {
   renderNeighbours();
 }
 
+// Each cell carries its column name, so phone layouts can show tables as stacked rows with nothing out of reach.
+function labelTables(root) {
+  qsa('table', root || document).forEach((table) => {
+    const heads = qsa('thead th', table).map((th) => th.textContent.trim());
+    qsa('tbody tr', table).forEach((row) => {
+      Array.from(row.children).forEach((cell, i) => { if (heads[i] !== undefined) setAttr(cell, 'data-label', heads[i]); });
+    });
+  });
+}
+
+function centerActiveNav() {
+  const pill = qs('.nav-pill.active');
+  if (pill && refs.nav.scrollWidth > refs.nav.clientWidth) refs.nav.scrollLeft = pill.offsetLeft - refs.nav.offsetLeft - (refs.nav.clientWidth - pill.offsetWidth) / 2;
+}
+
 function renderView() {
   qsa('[data-view-panel]').forEach((panel) => {
     const active = panel.dataset.viewPanel === App.view;
@@ -4907,8 +5002,7 @@ function renderView() {
   });
   renderChrome();
   updateHeaderHeight();
-  const pill = qs('.nav-pill.active');
-  if (pill && refs.nav.scrollWidth > refs.nav.clientWidth) refs.nav.scrollLeft = pill.offsetLeft - refs.nav.offsetLeft - (refs.nav.clientWidth - pill.offsetWidth) / 2;
+  centerActiveNav();
   STAGE_ORDER.forEach(drawStageCharts);
 }
 
@@ -5073,13 +5167,14 @@ function renderStepView(key) {
   setText(qs(`#step-hashes-${key}`), ready ? t('stepHashes', { branch, main }) : '');
   const vals = ready ? step.values : null;
   const caption = qs(`#step-caption-${key}`);
-  if (key === 'rl') { renderRlStep(step, vals, reached); setText(caption, ready ? rlCaption(vals, phaseName) : ''); return; }
+  const waiting = t(step.state === 'preparing' ? 'stepCaptionPreparing' : 'stepCaptionWaiting');
+  if (key === 'rl') { renderRlStep(step, vals, reached); setText(caption, ready ? rlCaption(vals, phaseName) : waiting); return; }
   const contextBox = qs(`#step-context-${key}`);
   contextBox.textContent = '';
   if (vals) vals.context.forEach((tok) => contextBox.appendChild(makeTokenChip(tok, null, '')));
   if (key === 'sft') {
-    setText(qs('#step-demo-prompt'), vals ? prettyTokens(splitTokens(vals.prompt)) : '');
-    setText(qs('#step-demo-response'), vals ? prettyTokens(splitTokens(vals.response)) : '');
+    setText(qs('#step-demo-prompt'), vals ? prettyTokens(splitTokens(vals.prompt)) : t('stepDemoWaiting'));
+    setText(qs('#step-demo-response'), vals ? prettyTokens(splitTokens(vals.response)) : '-');
     const chipEl = qs('#step-demo-style');
     chipEl.className = `edu-chip ${vals ? CLASS_TONES[vals.style] : 'tone-stone'}`;
     setText(chipEl, vals ? t(CLASS_KEYS[vals.style]) : '-');
@@ -5092,7 +5187,7 @@ function renderStepView(key) {
   setText(qs(`#step-grad-${key}`), reached('update') ? fmt(vals.gradNorm) : '-');
   setText(qs(`#step-changed-${key}`), reached('update') ? vals.changed.toLocaleString('pl-PL') : '-');
   setText(qs(`#step-move-${key}`), reached('update') ? vals.meanChange.toFixed(5).replace('.', ',') : '-');
-  if (!ready) { setText(caption, ''); return; }
+  if (!ready) { setText(caption, waiting); return; }
   const top = vals.topBefore.slice().sort((a, b) => b.p - a.p)[0];
   const captions = {
     context: t('capContext', { n: CONTEXT_LEN }),
@@ -5121,7 +5216,7 @@ function rlCaption(vals, phaseName) {
 }
 
 function renderRlStep(step, vals, reached) {
-  setText(qs('#step-rl-prompt'), vals ? prettyTokens(splitTokens(vals.prompt)) : '');
+  setText(qs('#step-rl-prompt'), vals ? prettyTokens(splitTokens(vals.prompt)) : t('stepRlPromptWaiting'));
   setText(qs('#step-rl-kind'), vals ? (vals.rewardKind === 'main' ? t('rlKindMain', { name: t(LABELLER_NAME_KEYS[vals.labeller] || 'srcRzeczowy') }) : t('rlKindStandin')) : '');
   ['a', 'b'].forEach((side) => {
     const item = vals ? vals[side] : null;
@@ -5631,7 +5726,7 @@ function viewKrokRlHtml() {
 function buildViews() {
   const builders = { smollm: viewSmolHtml, 'krok-pretraining': viewKrokPretrainingHtml, 'krok-sft': viewKrokSftHtml, 'krok-rl': viewKrokRlHtml, model: viewModelHtml, pretraining: viewPretrainingHtml, sft: viewSftHtml, rl: viewRlHtml, porownanie: viewPorownanieHtml, dane: viewDaneHtml, prawda: viewPrawdaHtml, quiz: viewQuizHtml };
   refs.views.innerHTML = VIEW_ORDER.map((view) => `<div data-view-panel="${view}" data-words="0" id="view-${view}" hidden>${builders[view]()}</div>`).join('');
-  refs.nav.innerHTML = VIEW_ORDER.map((view, i) => `<a class="nav-pill" data-view="${view}" href="#${view}" title="${Object.keys(VIEW_KEYS).find((key) => VIEW_KEYS[key] === view)}" data-index="${i + 1}">${t(VIEW_NAV_KEYS[view])}</a>`).join('');
+  refs.nav.innerHTML = VIEW_ORDER.map((view, i) => `<a class="nav-pill" data-view="${view}" href="#${view}" title="${t('navTitle', { name: t(VIEW_NAV_KEYS[view]), key: Object.keys(VIEW_KEYS).find((key) => VIEW_KEYS[key] === view) })}" data-index="${i + 1}">${t(VIEW_NAV_KEYS[view])}</a>`).join('');
   refs.nav.setAttribute('aria-label', t('navLabel'));
 }
 
@@ -5821,6 +5916,7 @@ const ACTIONS = {
     if (App.quiz.selected === null) return;
     App.quiz.checked = true;
     if (App.quiz.selected === QUIZ[App.quiz.index].correct) App.quiz.score += 1;
+    App.quiz.answers[App.quiz.index] = App.quiz.selected;
     renderQuiz();
     const action = qs('#quiz-action');
     if (action) action.focus();
@@ -5833,7 +5929,7 @@ const ACTIONS = {
     if (first) first.focus();
   },
   'quiz-retake': () => {
-    App.quiz = { index: 0, selected: null, checked: false, score: 0, finished: false };
+    App.quiz = { index: 0, selected: null, checked: false, score: 0, finished: false, answers: [] };
     renderQuiz();
     const first = qs('#quiz-body input');
     if (first) first.focus();
@@ -5961,7 +6057,7 @@ function bindListeners() {
     if (App.helpReturn && App.helpReturn.focus) App.helpReturn.focus();
   });
   window.addEventListener('hashchange', () => setView(window.location.hash.slice(1)));
-  window.addEventListener('resize', () => { STAGE_ORDER.forEach(drawStageCharts); updateHeaderHeight(); });
+  window.addEventListener('resize', () => { STAGE_ORDER.forEach(drawStageCharts); updateHeaderHeight(); centerActiveNav(); });
   App.loop.channel = new MessageChannel();
   App.loop.channel.port1.onmessage = pump;
   if ('PerformanceObserver' in window) {
@@ -6021,6 +6117,7 @@ function init() {
   renderMini();
   renderCorpus();
   renderQuiz();
+  labelTables(refs.views);
   setView(window.location.hash.slice(1) || 'model');
   renderAll();
   renderBudgets();
