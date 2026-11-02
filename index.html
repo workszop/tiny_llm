@@ -507,6 +507,14 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .hash-line { overflow-wrap: anywhere; color: var(--ink-3); }
 .pair-opt .edu-chip { justify-self: start; }
 
+/* ─── SmolLM2 panel ─── */
+.smol-grid { align-items: start; }
+.smol-input { margin: 4px 0 0; padding: 8px 10px; background: var(--paper-2); border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); max-height: 140px; overflow-y: auto; }
+.smol-output { margin: 4px 0 0; }
+.smol-progress { display: grid; gap: 4px; }
+.smol-column .edu-overline { margin: 0; }
+.smol-error { overflow-wrap: anywhere; }
+
 </style>
 </head>
 <body class="edu">
@@ -519,7 +527,7 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
   <div class="stepper">
     <div class="stepper-group"><span class="edu-chip" id="step-pretrain"></span><span class="edu-chip" id="step-sft"></span><span class="edu-chip" id="step-rl"></span></div>
     <div class="stepper-progress"><span class="small-label" id="visited-label"></span><span class="small-label" id="visited-count"></span>
-      <div class="progress-track" id="visited-track" role="progressbar" aria-labelledby="visited-label" aria-valuemin="0" aria-valuemax="11" aria-valuenow="1"><span id="visited-fill"></span></div></div>
+      <div class="progress-track" id="visited-track" role="progressbar" aria-labelledby="visited-label" aria-valuemin="0" aria-valuemax="12" aria-valuenow="1"><span id="visited-fill"></span></div></div>
     <div class="seed-control"><label class="small-label" id="seed-label" for="seed-input"></label><input id="seed-input" type="number" min="1" max="9999" step="1" aria-describedby="seed-hint"></div>
   </div>
   <div class="visually-hidden" id="seed-hint"></div>
@@ -655,6 +663,107 @@ const SOURCE_LINKS = {
   deepseek: 'https://arxiv.org/abs/2501.12948',
 };
 
+
+// ─── Constants: SmolLM2 panel ───
+// Change this one constant to host the converted SFT model: a Hugging Face URL such as
+// https://huggingface.co/<owner>/<repo>, or any URL (relative or absolute) of a folder with the same files.
+const SMOL_SFT_URL = 'models/smollm2-135M-SFT-Only/';
+const SMOL_LIB_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.min.js';
+const SMOL_LIB_SHA384 = 'xFDNfwR3J/vPYzGjMr1VSM8LHIcA+ii2Ha4x+6WAuISKpT9I0dxgF/mVQW+I0kSd';
+// Chosen by testing Instruct in headless Chrome (see spec section 10): q4 was slow and missed the answer,
+// int8 is slow on WebGPU, and fp16 went wrong on an Intel iGPU.
+const SMOL_DTYPE = { webgpu: 'fp32', wasm: 'int8' };
+const SMOL_GENERATION = { max_new_tokens: 60, do_sample: false, repetition_penalty: 1.2 };
+const SMOL_DEFAULT_PROMPT = 'What is the capital of France?';
+const SMOL_PROMPTS = ['What is the capital of France?', 'List three fruits.', 'Why is the sky blue?'];
+const SMOL_ORDER = ['base', 'sft', 'instruct'];
+const SMOL_MODELS = {
+  base: { repo: 'onnx-community/SmolLM2-135M-ONNX', chat: false, page: 'https://huggingface.co/onnx-community/SmolLM2-135M-ONNX', bytes: { int8: 135658354, fp32: 540356186 } },
+  sft: { repo: null, chat: true, page: 'https://huggingface.co/HuggingFaceTB/smollm2-135M-SFT-Only', bytes: { int8: 164907574, fp32: 652540079 } },
+  instruct: { repo: 'HuggingFaceTB/SmolLM2-135M-Instruct', chat: true, page: 'https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct', bytes: { int8: 137147867, fp32: 540345794 } },
+};
+const SMOL_WORKER_SOURCE = `
+let generator = null;
+let libraryPromise = null;
+
+function loadLibrary(url, sha384) {
+  if (!libraryPromise) libraryPromise = (async () => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('library-http-' + response.status);
+    const buffer = await response.arrayBuffer();
+    if (!self.crypto || !self.crypto.subtle) throw new Error('integrity-unavailable');
+    const digest = await self.crypto.subtle.digest('SHA-384', buffer);
+    const hash = btoa(String.fromCharCode(...new Uint8Array(digest)));
+    if (hash !== sha384) throw new Error('integrity-mismatch');
+    return import(URL.createObjectURL(new Blob([buffer], { type: 'text/javascript' })));
+  })();
+  return libraryPromise;
+}
+
+async function load(msg) {
+  const lib = await loadLibrary(msg.libUrl, msg.libSha);
+  const { pipeline, env } = lib;
+  self.textStreamer = lib.TextStreamer;
+  env.allowRemoteModels = true;
+  env.allowLocalModels = false;
+  if (msg.host) { env.remoteHost = msg.host; env.remotePathTemplate = '{model}/'; }
+  const files = {};
+  const progress_callback = (p) => {
+    if (p.status === 'progress' && p.total) {
+      files[p.file] = { loaded: p.loaded, total: p.total };
+      const list = Object.values(files);
+      self.postMessage({ type: 'progress', loaded: list.reduce((n, f) => n + f.loaded, 0), total: list.reduce((n, f) => n + f.total, 0) });
+    }
+  };
+  const start = performance.now();
+  let device = msg.device;
+  let fallback = '';
+  if (device === 'webgpu') {
+    let adapter = null;
+    try { adapter = self.navigator.gpu ? await self.navigator.gpu.requestAdapter() : null; } catch (err) { adapter = null; }
+    if (!adapter) { device = 'wasm'; fallback = 'no-adapter'; }
+  }
+  try {
+    generator = await pipeline('text-generation', msg.model, { dtype: msg.dtype[device], device, progress_callback });
+  } catch (err) {
+    if (device !== 'webgpu') throw err;
+    fallback = String(err && err.message || err).slice(0, 160);
+    device = 'wasm';
+    generator = await pipeline('text-generation', msg.model, { dtype: msg.dtype.wasm, device, progress_callback });
+  }
+  self.postMessage({ type: 'ready', backend: device, dtype: msg.dtype[device], fallback, loadMs: Math.round(performance.now() - start) });
+}
+
+async function generate(msg) {
+  const tokenizer = generator.tokenizer;
+  const messages = [{ role: 'user', content: msg.prompt }];
+  const shown = msg.chat ? tokenizer.apply_chat_template(messages, { tokenize: false, add_generation_prompt: true }) : msg.prompt;
+  self.postMessage({ type: 'input', input: shown });
+  let text = '';
+  let tokens = 0;
+  const start = performance.now();
+  const streamer = new self.textStreamer(tokenizer, {
+    skip_prompt: true,
+    skip_special_tokens: true,
+    callback_function: (piece) => { text += piece; self.postMessage({ type: 'token', text }); },
+    token_callback_function: () => { tokens += 1; },
+  });
+  await generator(msg.chat ? messages : msg.prompt, { ...msg.settings, streamer });
+  self.postMessage({ type: 'done', text, tokens, ms: Math.round(performance.now() - start) });
+}
+
+self.onmessage = async (event) => {
+  try {
+    if (event.data.type === 'load') await load(event.data);
+    else if (event.data.type === 'generate') await generate(event.data);
+  } catch (err) {
+    self.postMessage({ type: 'error', message: String(err && err.message || err).slice(0, 300) });
+  }
+};
+`;
+// config, generation config, tokenizer and vocabulary files that come with every model.
+const SMOL_TOKENIZER_BYTES = 3400000;
+
 // Lucide icons (ISC licence) inlined so badges never depend on a CDN.
 const ICON_PATHS = {"brain":"<path d=\"M12 18V5\"/><path d=\"M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4\"/><path d=\"M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5\"/><path d=\"M17.997 5.125a4 4 0 0 1 2.526 5.77\"/><path d=\"M18 18a4 4 0 0 0 2-7.464\"/><path d=\"M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517\"/><path d=\"M6 18a4 4 0 0 1-2-7.464\"/><path d=\"M6.003 5.125a4 4 0 0 0-2.526 5.77\"/>",
   "list-ordered":"<path d=\"M11 5h10\"/><path d=\"M11 12h10\"/><path d=\"M11 19h10\"/><path d=\"M4 4h1v5\"/><path d=\"M4 9h2\"/><path d=\"M6.5 20H3.4c0-1 2.6-1.925 2.6-3.5a1.5 1.5 0 0 0-2.6-1.02\"/>",
@@ -685,7 +794,10 @@ const ICON_PATHS = {"brain":"<path d=\"M12 18V5\"/><path d=\"M15 13a4.17 4.17 0 
   "book-marked":"<path d=\"M10 2v7.751a.25.25 0 00.407.195l2.28-1.834a.5.5 0 01.627 0l2.28 1.834A.25.25 0 0016 9.751V2\"/><path d=\"M4 19.5v-15A2.5 2.5 0 016.5 2H19a1 1 0 011 1v18a1 1 0 01-1 1H6.5a1 1 0 010-5H20\"/>",
   "circle-help":"<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"/><path d=\"M12 17h.01\"/>",
   "repeat":"<path d=\"m17 2 4 4-4 4\"/><path d=\"M3 11v-1a4 4 0 0 1 4-4h14\"/><path d=\"m7 22-4-4 4-4\"/><path d=\"M21 13v1a4 4 0 0 1-4 4H3\"/>",
-  "flask-conical":"<path d=\"M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2\"/><path d=\"M6.453 15h11.094\"/><path d=\"M8.5 2h7\"/>"};
+  "flask-conical":"<path d=\"M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2\"/><path d=\"M6.453 15h11.094\"/><path d=\"M8.5 2h7\"/>",
+  "sparkles":"<path d=\"M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z\"/><path d=\"M20 2v4\"/><path d=\"M22 4h-4\"/><circle cx=\"4\" cy=\"20\" r=\"2\"/>",
+  "languages":"<path d=\"m5 8 6 6\"/><path d=\"m4 14 6-6 2-3\"/><path d=\"M2 5h12\"/><path d=\"M7 2h1\"/><path d=\"m22 22-5-10-5 10\"/><path d=\"M14 18h6\"/>",
+  "triangle-alert":"<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>"};
 
 // ─── Constants: UI strings ───
 const T = {
@@ -700,6 +812,7 @@ const T = {
   navDane: 'Dane',
   navPrawda: 'Co jest prawdziwe',
   navQuiz: 'Sprawdź się',
+  navSmol: 'SmolLM2',
   navKrokPretraining: 'Krok: pretraining',
   navKrokSft: 'Krok: SFT',
   navKrokRl: 'Krok: RL',
@@ -1086,7 +1199,8 @@ const T = {
   q8e: 'RL goni nagrodę, także złą. Sprawdzisz to w eksperymencie z odwróconym oznaczającym.',
 
   helpTitle: 'Skróty klawiszowe',
-  helpViews: 'Klawisze 1-8: główne widoki; 9, 0 i -: strony z krokiem treningu',
+  helpViews: 'Klawisze 1-8: główne widoki; 9, 0 i -: strony z krokiem treningu; =: panel SmolLM2',
+  helpSmol: 'W panelu SmolLM2: G generuje odpowiedzi w gotowych kolumnach',
   helpSteps: 'Na stronach z krokiem: N następny, B poprzedni, A autoodtwarzanie',
   helpTrain: 'T: start lub pauza treningu w bieżącym etapie',
   helpNext: 'N: następny token w widoku Model',
@@ -1208,7 +1322,70 @@ const T = {
   rlDiffTitle: 'Czym ten krok różni się od SFT',
   rlDiffText: 'Nie ma tu wzorca. Sygnałem jest nagroda za odpowiedź napisaną przez sam model.',
 
-  footer: 'Bez kluczy API i bez połączeń z modelami zewnętrznymi. Liczy tylko ta karta.',
+  footer: 'Bez kluczy API. Mały model liczy się w tej karcie. Panel SmolLM2 pobiera model tylko po kliknięciu.',
+
+  smolHead: 'SmolLM2: prawdziwy model',
+  smolHeroOver: 'Opcjonalnie',
+  smolHeroLead: 'Ten sam angielski prompt trafia do trzech wersji gotowego modelu. Ten panel niczego nie trenuje.',
+  smolTileEnTitle: 'Tylko angielski',
+  smolTileEnText: 'SmolLM2 zna głównie angielski, więc prompt i odpowiedzi są po angielsku.',
+  smolTileDpoTitle: 'Inaczej niż RL tutaj',
+  smolTileDpoText: 'Instruct dostrojono metodą DPO na parach odpowiedzi, bez osobnego modelu nagrody i bez pętli RL.',
+  smolTileLieTitle: 'Może zmyślać',
+  smolTileLieText: 'To mały model. Odpowiedzi bywają błędne, więc sprawdzaj fakty.',
+  smolFold: 'Dane, pochodzenie i licencje',
+  smolFoldDpo: 'DPO uczy się bezpośrednio z par: odpowiedź wybrana i odrzucona. Zastępuje model nagrody i uczenie ze wzmocnieniem prostą funkcją straty, więc różni się od modelu nagrody i RL w tej aplikacji.',
+  smolFoldUltra: 'Instruct użył zbioru UltraFeedback Binarized. Oceny w UltraFeedback wystawił GPT-4, nie ludzie. W wersji binarnej odpowiedź z najwyższą oceną jest wybrana, a jedna z pozostałych trzech, losowa, odrzucona.',
+  smolFoldLineage: 'Pochodzenie SFT-Only jest niepotwierdzone: tekst karty wskazuje SmolLM2-135M, a metadane 135M-lc-100k-rope-12B. Karta Instruct wskazuje jako bazę SmolLM2-135M i nie wymienia SFT-Only.',
+  smolFoldMeasure: 'Nasz pomiar wag (norma L2 różnicy do normy wag): SFT-Only i Instruct różnią się o około 0,008%, a SFT-Only i SmolLM2-135M o około 8,6%. To mocna wskazówka, że Instruct powstał z SFT-Only lub bardzo bliskiej kopii, ale nie dowód. Odpowiedzi tych kolumn różnią się też przez szablon: Instruct dodaje własny komunikat systemowy, co widać w polu „Co dostał model”.',
+  smolFoldLicence: 'SFT-Only nie ma znacznika licencji na stronie modelu. SmolLM2-135M i Instruct mają Apache 2.0, a bazowa kopia ONNX nie ma własnego znacznika.',
+  smolFoldConvert: 'SFT-Only nie ma publicznej wersji ONNX. Przekonwertowaliśmy ją lokalnie i nigdzie jej nie wysłaliśmy, więc działa tylko z lokalnego serwera z plikami w folderze models.',
+  smolPromptLabel: 'Prompt po angielsku',
+  smolPromptEmpty: 'Wpisz prompt: pusty nie daje modelom żadnego kontekstu.',
+  smolGenerate: 'Generuj we wszystkich gotowych kolumnach',
+  smolGenerateHint: 'Najpierw pobierz przynajmniej jeden model.',
+  smolSettings: 'Ustawienia, takie same w każdej kolumnie: do {tokens} nowych tokenów, bez losowania, kara za powtórzenia {penalty}.',
+  smolEngine: 'Silnik',
+  smolEngineGpu: 'WebGPU: pełne wagi, większe pobranie, szybciej. WASM: wagi 8-bitowe, mniejsze pobranie. Jeśli WebGPU zawiedzie, kolumna przejdzie na WASM i to napisze.',
+  smolEngineNoGpu: 'WebGPU nie jest tu dostępne, więc model działa przez WASM z wagami 8-bitowymi.',
+  smolConsent: 'Nic nie pobiera się samo. Pobieranie rusza po kliknięciu przycisku w kolumnie, a przeglądarka zachowuje pliki w swojej pamięci.',
+  smolDownload: 'Pobierz: {size}',
+  smolRetry: 'Spróbuj ponownie: {size}',
+  smolCancel: 'Anuluj',
+  smolStarting: 'Start…',
+  smolName_base: 'Baza',
+  smolName_sft: 'SFT',
+  smolName_instruct: 'SFT + DPO',
+  smolWhat_base: 'Sam pretraining. Dostaje surowy tekst, bez szablonu rozmowy.',
+  smolWhat_sft: 'Po dostrajaniu nadzorowanym. Dostaje szablon rozmowy.',
+  smolWhat_instruct: 'Po SFT i DPO, wersja Instruct. Dostaje szablon rozmowy.',
+  smolState_idle: 'nie pobrano',
+  smolState_downloading: 'pobieranie',
+  smolState_ready: 'gotowy',
+  smolState_generating: 'generuje',
+  smolState_error: 'błąd',
+  smolState_unavailable: 'niedostępny',
+  smolUnavailableHost: 'Ta wersja nie jest dostępna: nie ma publicznej kopii ONNX, a na tym serwerze nie ma plików z lokalnej konwersji. Nie zastępujemy jej innym modelem.',
+  smolUnavailableHttp: 'Ta wersja nie jest dostępna przy otwarciu z pliku: lokalna konwersja wymaga serwera http, a publicznej kopii ONNX nie ma. Nie zastępujemy jej innym modelem.',
+  smolErrorShown: 'Nie udało się: {message}',
+  smolErrorWorker: 'Błąd procesu w tle.',
+  smolBackend: 'Działa na: {backend}, kwantyzacja {dtype}, rozmiar {size}.',
+  smolFallback: 'WebGPU nie zadziałało, więc użyto WASM.',
+  smolInputLabel: 'Co dostał model',
+  smolOutputLabel: 'Odpowiedź modelu',
+  smolTiming: '{tokens} tokenów w {seconds} s ({rate} tokenów/s).',
+  smolLiveDownload: 'SmolLM2 {name}: pobieranie.',
+  smolLiveReady: 'SmolLM2 {name}: gotowy, {backend}.',
+  smolLiveDone: 'SmolLM2 {name}: odpowiedź gotowa.',
+  smolLiveError: 'SmolLM2 {name}: błąd.',
+  smolLiveCancel: 'SmolLM2 {name}: anulowano.',
+  smolSrcParent: 'SmolLM2-135M, model bazowy',
+  smolSrcBinarized: 'UltraFeedback Binarized, zbiór użyty do DPO',
+  smolSrcUltra: 'UltraFeedback, zbiór źródłowy',
+  smolSrcUltraPaper: 'Cui i in., „UltraFeedback”, arXiv:2310.01377',
+  smolSrcDpo: 'Rafailov i in., „Direct Preference Optimization”, arXiv:2305.18290',
+  smolSrcPaper: 'Ben Allal i in., „SmolLM2”, arXiv:2502.02737',
+  smolSrcRecipe: 'Przepis treningu: alignment-handbook, recipes/smollm2',
   liveTrainingStart: '{name}: start treningu.',
   liveTrainingHalf: '{name}: połowa treningu.',
   liveTrainingDone: '{name}: trening zakończony.',
@@ -1242,9 +1419,9 @@ const T = {
   probeSeconds: 'sekundy',
 };
 
-const VIEW_ORDER = ['model', 'pretraining', 'krok-pretraining', 'sft', 'krok-sft', 'rl', 'krok-rl', 'porownanie', 'dane', 'prawda', 'quiz'];
-const VIEW_NAV_KEYS = { model: 'navModel', pretraining: 'navPretraining', 'krok-pretraining': 'navKrokPretraining', sft: 'navSft', 'krok-sft': 'navKrokSft', rl: 'navRl', 'krok-rl': 'navKrokRl', porownanie: 'navPorownanie', dane: 'navDane', prawda: 'navPrawda', quiz: 'navQuiz' };
-const VIEW_KEYS = { 1: 'model', 2: 'pretraining', 3: 'sft', 4: 'rl', 5: 'porownanie', 6: 'dane', 7: 'prawda', 8: 'quiz', 9: 'krok-pretraining', 0: 'krok-sft', '-': 'krok-rl' };
+const VIEW_ORDER = ['model', 'pretraining', 'krok-pretraining', 'sft', 'krok-sft', 'rl', 'krok-rl', 'porownanie', 'smollm', 'dane', 'prawda', 'quiz'];
+const VIEW_NAV_KEYS = { model: 'navModel', pretraining: 'navPretraining', 'krok-pretraining': 'navKrokPretraining', sft: 'navSft', 'krok-sft': 'navKrokSft', rl: 'navRl', 'krok-rl': 'navKrokRl', porownanie: 'navPorownanie', smollm: 'navSmol', dane: 'navDane', prawda: 'navPrawda', quiz: 'navQuiz' };
+const VIEW_KEYS = { 1: 'model', 2: 'pretraining', 3: 'sft', 4: 'rl', 5: 'porownanie', 6: 'dane', 7: 'prawda', 8: 'quiz', 9: 'krok-pretraining', 0: 'krok-sft', '-': 'krok-rl', '=': 'smollm' };
 const STEP_VIEW = { pretrain: 'krok-pretraining', sft: 'krok-sft', rl: 'krok-rl' };
 const NOTICE_STAGES = { model: ['pretrain', 'sft', 'rl'], pretraining: ['pretrain'], 'krok-pretraining': ['pretrain'], sft: ['pretrain', 'sft'], 'krok-sft': ['pretrain'], rl: ['pretrain', 'sft', 'rl'], 'krok-rl': ['pretrain', 'sft'], porownanie: ['pretrain', 'sft', 'rl'], dane: ['pretrain', 'sft', 'rl'] };
 const STAGE_ORDER = ['pretrain', 'sft', 'rl'];
@@ -1308,6 +1485,7 @@ const App = {
   stepGrad: null,
   stepSets: null,
   samples: {},
+  smol: null,
   sampleRng: null,
   rl: { source: 'rzeczowy', own: [], equalCount: 0, ownPair: null, ownReward: null, reward: null, simPairs: 0, mainLabeller: '', lastPairs: null },
   miniAt: 0,
@@ -3041,6 +3219,7 @@ function probeChecks() {
     probeReset();
     return { ok: next && back && on && off && running && stopped, value: `N:${next} B:${back} A:${on}/${off} po wyjściu:${stopped}` };
   });
+  smolProbeChecks(add);
   add('dom-contract', () => {
     const problems = [];
     const app = refs.app;
@@ -3085,6 +3264,12 @@ function probeChecks() {
       need(el, 'data-json');
     });
     qsa('[data-view-panel]').forEach((panel) => need(panel, 'data-words'));
+    SMOL_ORDER.forEach((key) => {
+      const col = qs(`[data-smol-column="${key}"]`);
+      need(col, 'data-state', App.smol.columns[key].state);
+      ['data-progress', 'data-backend', 'data-dtype', 'data-input', 'data-output', 'data-error', 'data-ms', 'data-tokens'].forEach((name) => need(col, name));
+    });
+    need(qs('[data-smol]'), 'data-prompt', App.smol.prompt);
     qsa('[data-train-notice]').forEach((notice) => { need(notice, 'data-needs'); need(notice, 'data-state'); });
     if (qsa('[data-train-notice]').length !== Object.keys(NOTICE_STAGES).length) problems.push('zła liczba komunikatów o treningu');
     ['corpus', 'demos', 'pairs'].forEach((kind) => {
@@ -3560,6 +3745,374 @@ function refreshPairSample() {
 
 // ─── Helpers: train-first notices ───
 function noticeTarget(stages) { return stages.find((key) => App.stages[key].status !== 'done') || ''; }
+
+// ─── Helpers: SmolLM2 panel (optional, real model in a worker) ───
+function newSmolColumn(key) {
+  return { key, state: 'idle', progress: 0, loaded: 0, total: 0, backend: '', dtype: '', fallback: '', input: '', output: '', error: '', errorKind: '', ms: 0, tokens: 0, loadMs: 0, worker: null, checked: false };
+}
+
+function initSmol() {
+  App.smol = { columns: {}, prompt: SMOL_DEFAULT_PROMPT, promptError: '', queue: [], running: null, engine: 'wasm', engineChosen: new URLSearchParams(window.location.search).get('backend') === 'wasm', gpuChecked: false, gpuAvailable: false, factory: createRealSmolWorker };
+  SMOL_ORDER.forEach((key) => { App.smol.columns[key] = newSmolColumn(key); });
+}
+
+function createRealSmolWorker() {
+  const url = URL.createObjectURL(new Blob([SMOL_WORKER_SOURCE], { type: 'text/javascript' }));
+  // A classic worker: module workers from blob URLs fail on file:// pages, while dynamic import() works in both.
+  return new Worker(url);
+}
+
+// The SFT copy has no public home, so its source is resolved from SMOL_SFT_URL only.
+function smolSftSource() {
+  const value = SMOL_SFT_URL;
+  const hub = value.match(/^https:\/\/huggingface\.co\/([^/]+\/[^/]+)\/?$/);
+  if (hub) return { remote: true, model: hub[1], checkUrl: null };
+  // Any other folder is read as a remote host: the library's local-path loader skips the tokenizer
+  // for http URLs (Transformers.js 4.3.2), so the folder's last two segments act as the model id.
+  const absolute = new URL(value, window.location.href);
+  const folder = absolute.href.replace(/\/$/, '');
+  const parts = folder.split('/');
+  const model = parts.slice(-2).join('/');
+  const host = `${parts.slice(0, -2).join('/')}/`;
+  return { remote: false, model, host, checkUrl: `${folder}/config.json` };
+}
+
+// Looks for WebGPU without downloading anything. WebGPU becomes the default engine only when an adapter exists.
+async function checkSmolEngine() {
+  const smol = App.smol;
+  if (smol.gpuChecked) return;
+  smol.gpuChecked = true;
+  try {
+    const adapter = navigator.gpu ? await navigator.gpu.requestAdapter() : null;
+    smol.gpuAvailable = !!adapter;
+  } catch (err) {
+    smol.gpuAvailable = false;
+  }
+  if (smol.gpuAvailable && !smol.engineChosen) smol.engine = 'webgpu';
+  renderSmol();
+}
+
+function smolSetEngine(engine) {
+  const smol = App.smol;
+  if (SMOL_ORDER.some((key) => ['downloading', 'generating'].includes(smol.columns[key].state))) return;
+  if (engine === 'webgpu' && !smol.gpuAvailable) return;
+  smol.engine = engine;
+  smol.engineChosen = true;
+  renderSmol();
+}
+
+// Same-origin metadata check only: it never downloads model weights.
+async function checkSftAvailability() {
+  const column = App.smol.columns.sft;
+  if (column.state !== 'idle' && column.state !== 'unavailable') return;
+  const source = smolSftSource();
+  column.checked = true;
+  if (source.remote) { column.state = 'idle'; column.errorKind = ''; renderSmol(); return; }
+  const http = /^https?:$/.test(new URL(source.checkUrl).protocol);
+  if (!http || window.location.protocol === 'file:') { column.state = 'unavailable'; column.errorKind = 'needs-http'; renderSmol(); return; }
+  try {
+    const response = await fetch(source.checkUrl, { method: 'HEAD' });
+    column.state = response.ok ? 'idle' : 'unavailable';
+    column.errorKind = response.ok ? '' : 'not-hosted';
+  } catch (err) {
+    column.state = 'unavailable';
+    column.errorKind = 'not-hosted';
+  }
+  renderSmol();
+}
+
+function smolModelMessage(key) {
+  const device = App.smol.engine;
+  const base = { type: 'load', libUrl: SMOL_LIB_URL, libSha: SMOL_LIB_SHA384, dtype: SMOL_DTYPE, device };
+  if (key !== 'sft') return { ...base, remote: true, model: SMOL_MODELS[key].repo };
+  const source = smolSftSource();
+  return { ...base, remote: true, model: source.model, host: source.host || null };
+}
+
+function smolDownloadBytes(key) {
+  const dtype = SMOL_DTYPE[App.smol.engine];
+  return SMOL_MODELS[key].bytes[dtype] + SMOL_TOKENIZER_BYTES;
+}
+
+function smolMegabytes(bytes) { return `${Math.round(bytes / 1000000).toLocaleString('pl-PL')} MB`; }
+
+function smolLoad(key) {
+  const column = App.smol.columns[key];
+  if (!['idle', 'error'].includes(column.state)) return;
+  Object.assign(column, { state: 'downloading', progress: 0, loaded: 0, total: 0, error: '', errorKind: '', output: '', input: '', fallback: '' });
+  let worker;
+  try {
+    worker = App.smol.factory(key);
+  } catch (err) {
+    smolFail(key, 'worker', String(err && err.message || err));
+    return;
+  }
+  column.worker = worker;
+  worker.onmessage = (event) => smolMessage(key, event.data);
+  worker.onerror = (event) => smolFail(key, 'worker', event.message || t('smolErrorWorker'));
+  worker.postMessage(smolModelMessage(key));
+  announce(t('smolLiveDownload', { name: t(`smolName_${key}`) }));
+  renderSmol();
+}
+
+function smolFail(key, kind, message) {
+  const column = App.smol.columns[key];
+  if (column.worker) column.worker.terminate();
+  column.worker = null;
+  column.state = 'error';
+  column.errorKind = kind;
+  column.error = message;
+  if (App.smol.running === key) App.smol.running = null;
+  announce(t('smolLiveError', { name: t(`smolName_${key}`) }));
+  smolNextInQueue();
+  renderSmol();
+}
+
+function smolMessage(key, msg) {
+  const column = App.smol.columns[key];
+  if (!column.worker) return;
+  if (msg.type === 'progress') {
+    column.loaded = msg.loaded; column.total = msg.total;
+    column.progress = msg.total ? Math.min(100, Math.round(100 * msg.loaded / msg.total)) : 0;
+    renderSmolColumn(key);
+  } else if (msg.type === 'ready') {
+    Object.assign(column, { state: 'ready', progress: 100, backend: msg.backend, dtype: msg.dtype, fallback: msg.fallback || '', loadMs: msg.loadMs || 0 });
+    announce(t('smolLiveReady', { name: t(`smolName_${key}`), backend: msg.backend }));
+    renderSmol();
+  } else if (msg.type === 'input') {
+    column.input = msg.input;
+    renderSmolColumn(key);
+  } else if (msg.type === 'token') {
+    column.output = msg.text;
+    renderSmolColumn(key);
+  } else if (msg.type === 'done') {
+    Object.assign(column, { state: 'ready', output: msg.text, ms: msg.ms, tokens: msg.tokens });
+    App.smol.running = null;
+    announce(t('smolLiveDone', { name: t(`smolName_${key}`) }));
+    smolNextInQueue();
+    renderSmol();
+  } else if (msg.type === 'error') {
+    const kind = column.state === 'generating' ? 'generate' : 'download';
+    smolFail(key, kind, msg.message);
+  }
+}
+
+function smolCancel(key) {
+  const column = App.smol.columns[key];
+  if (!['downloading', 'generating'].includes(column.state)) return;
+  if (column.worker) column.worker.terminate();
+  Object.assign(column, newSmolColumn(key), { checked: column.checked });
+  App.smol.queue = App.smol.queue.filter((item) => item !== key);
+  if (App.smol.running === key) App.smol.running = null;
+  announce(t('smolLiveCancel', { name: t(`smolName_${key}`) }));
+  smolNextInQueue();
+  renderSmol();
+}
+
+function smolGenerate() {
+  const smol = App.smol;
+  if (!smol.prompt.trim()) { smol.promptError = t('smolPromptEmpty'); renderSmol(); return false; }
+  smol.promptError = '';
+  const ready = SMOL_ORDER.filter((key) => smol.columns[key].state === 'ready' && !smol.queue.includes(key) && smol.running !== key);
+  if (!ready.length) { renderSmol(); return false; }
+  smol.queue.push(...ready);
+  smol.currentPrompt = smol.prompt;
+  ready.forEach((key) => { smol.columns[key].output = ''; smol.columns[key].ms = 0; smol.columns[key].tokens = 0; });
+  smolNextInQueue();
+  renderSmol();
+  return true;
+}
+
+// One column generates at a time, so the columns do not fight over memory or the GPU.
+function smolNextInQueue() {
+  const smol = App.smol;
+  if (smol.running || !smol.queue.length) return;
+  const key = smol.queue.shift();
+  const column = smol.columns[key];
+  if (column.state !== 'ready' || !column.worker) { smolNextInQueue(); return; }
+  column.state = 'generating';
+  smol.running = key;
+  column.worker.postMessage({ type: 'generate', prompt: smol.currentPrompt, chat: SMOL_MODELS[key].chat, settings: SMOL_GENERATION });
+}
+
+// A mocked worker for the offline probes: it speaks the same messages and never touches the network.
+function createMockSmolWorker(behaviour) {
+  const mock = {
+    onmessage: null, onerror: null, closed: false, sent: [],
+    emit(msg, delay) { setTimeout(() => { if (!mock.closed && mock.onmessage) mock.onmessage({ data: msg }); }, delay); },
+    terminate() { mock.closed = true; },
+    postMessage(msg) {
+      mock.sent.push(msg);
+      if (msg.type === 'load') {
+        if (behaviour === 'hang') return;
+        mock.emit({ type: 'progress', loaded: 50, total: 100 }, 1);
+        if (behaviour === 'fail-load') { mock.emit({ type: 'error', message: 'mock-failure' }, 2); return; }
+        const backend = behaviour === 'gpu-fail' ? 'wasm' : msg.device;
+        mock.emit({ type: 'ready', backend, dtype: msg.dtype[backend], fallback: behaviour === 'gpu-fail' ? 'mock-gpu-error' : '', loadMs: 1 }, 3);
+      } else if (msg.type === 'generate') {
+        mock.emit({ type: 'input', input: msg.chat ? `<chat>${msg.prompt}` : msg.prompt }, 1);
+        if (behaviour === 'hang-generate') return;
+        if (behaviour === 'fail-generate') { mock.emit({ type: 'error', message: 'mock-generate-failure' }, 2); return; }
+        mock.emit({ type: 'token', text: 'mock' }, 2);
+        mock.emit({ type: 'done', text: 'mock output', tokens: 2, ms: 3 }, 3);
+      }
+    },
+  };
+  return mock;
+}
+
+function smolProbeChecks(add) {
+  const until = (cond) => waitFor(cond, 3000);
+  const column = (key) => qs(`[data-smol-column="${key}"]`);
+  const state = (key) => column(key).getAttribute('data-state');
+  const reset = (behaviours) => {
+    SMOL_ORDER.forEach((key) => { if (App.smol.columns[key].worker) App.smol.columns[key].worker.terminate(); });
+    const created = {};
+    initSmol();
+    App.smol.factory = (key) => { created[key] = createMockSmolWorker((behaviours && behaviours[key]) || 'ok'); return created[key]; };
+    App.smol.columns.sft.state = 'idle';
+    App.smol.columns.sft.checked = true;
+    App.smol.gpuChecked = true; App.smol.gpuAvailable = true; App.smol.engine = 'webgpu'; App.smol.engineChosen = true;
+    renderSmol();
+    return created;
+  };
+  const restore = () => { reset(); initSmol(); renderSmol(); };
+  add('smol-offline', () => {
+    const external = performance.getEntriesByType('resource').filter((e) => /huggingface|hf\.co|jsdelivr|transformers/.test(e.name)).map((e) => e.name);
+    const noLib = !window.transformers;
+    const idle = ['base', 'instruct'].every((key) => state(key) === 'idle');
+    const told = SMOL_ORDER.every((key) => /MB/.test(qs('[data-action="smol-load"]', column(key)).textContent));
+    const worker = SMOL_ORDER.every((key) => App.smol.columns[key].worker === null);
+    return { ok: external.length === 0 && noLib && idle && told && worker, value: `bez sieci:${external.length === 0} stan:${idle} rozmiar w przycisku:${told} bez procesu:${worker}` };
+  });
+  add('smol-flow', async () => {
+    const created = reset();
+    smolLoad('base');
+    const downloading = state('base') === 'downloading';
+    await until(() => state('base') === 'ready');
+    const backend = column('base').getAttribute('data-backend') === 'webgpu' && column('base').getAttribute('data-dtype') === SMOL_DTYPE.webgpu;
+    smolLoad('instruct');
+    await until(() => state('instruct') === 'ready');
+    const prompt = App.smol.prompt;
+    smolGenerate();
+    const serial = [state('base'), state('instruct')].filter((s) => s === 'generating').length === 1;
+    await until(() => state('base') === 'ready' && state('instruct') === 'ready' && column('base').getAttribute('data-output') === 'mock output' && column('instruct').getAttribute('data-output') === 'mock output');
+    const baseMsg = created.base.sent.find((m) => m.type === 'generate');
+    const instructMsg = created.instruct.sent.find((m) => m.type === 'generate');
+    const raw = baseMsg.chat === false && column('base').getAttribute('data-input') === prompt;
+    const chat = instructMsg.chat === true && column('instruct').getAttribute('data-input') === `<chat>${prompt}`;
+    const settings = JSON.stringify(baseMsg.settings) === JSON.stringify(SMOL_GENERATION);
+    restore();
+    return { ok: downloading && backend && serial && raw && chat && settings, value: `pobieranie:${downloading} backend:${backend} po kolei:${serial} surowy:${raw} szablon:${chat} ustawienia:${settings}` };
+  });
+  add('smol-cancel', async () => {
+    const created = reset({ base: 'hang', instruct: 'hang-generate' });
+    smolLoad('base');
+    const was = state('base') === 'downloading';
+    smolCancel('base');
+    const cancelled = state('base') === 'idle' && created.base.closed;
+    smolLoad('instruct');
+    await until(() => state('instruct') === 'ready');
+    smolGenerate();
+    const generating = state('instruct') === 'generating';
+    smolCancel('instruct');
+    const stopped = state('instruct') === 'idle' && created.instruct.closed && App.smol.running === null;
+    restore();
+    return { ok: was && cancelled && generating && stopped, value: `pobieranie:${was}/${cancelled} generowanie:${generating}/${stopped}` };
+  });
+  add('smol-errors', async () => {
+    reset({ base: 'fail-load', instruct: 'fail-generate' });
+    smolLoad('base');
+    await until(() => state('base') === 'error');
+    const message = column('base').getAttribute('data-error').length > 0 && qs('[data-action="smol-load"]', column('base')).disabled === false && qs('.smol-error', column('base')).textContent.length > 0;
+    smolLoad('instruct');
+    await until(() => state('instruct') === 'ready');
+    smolGenerate();
+    await until(() => state('instruct') === 'error');
+    const generateFailed = column('instruct').getAttribute('data-error-kind') === 'generate';
+    const emptyPrompt = (() => { App.smol.prompt = '  '; const r = smolGenerate(); return r === false && qs('#smol-prompt-error').textContent.length > 0; })();
+    restore();
+    return { ok: message && generateFailed && emptyPrompt, value: `pobieranie:${message} generowanie:${generateFailed} pusty prompt:${emptyPrompt}` };
+  });
+  add('smol-fallback', async () => {
+    reset({ base: 'gpu-fail' });
+    smolLoad('base');
+    await until(() => state('base') === 'ready');
+    const ok = column('base').getAttribute('data-backend') === 'wasm' && qs('.smol-backend', column('base')).textContent.includes('WASM') && qs('.smol-backend', column('base')).textContent.length > 8;
+    restore();
+    return { ok, value: `WASM po błędzie WebGPU:${ok}` };
+  });
+  add('smol-engine', () => {
+    reset();
+    const size = () => qs('[data-action="smol-load"]', column('instruct')).textContent;
+    const gpuSize = size();
+    const gpuOk = gpuSize.includes(smolMegabytes(SMOL_MODELS.instruct.bytes.fp32 + SMOL_TOKENIZER_BYTES));
+    smolSetEngine('wasm');
+    const wasmSize = size();
+    const wasmOk = wasmSize.includes(smolMegabytes(SMOL_MODELS.instruct.bytes.int8 + SMOL_TOKENIZER_BYTES));
+    const engineAttr = qs('[data-smol]').getAttribute('data-engine') === 'wasm';
+    restore();
+    return { ok: gpuOk && wasmOk && engineAttr, value: `WebGPU: ${gpuSize}; WASM: ${wasmSize}` };
+  });
+  add('smol-unavailable', async () => {
+    reset();
+    const col = App.smol.columns.sft;
+    col.state = 'unavailable'; col.errorKind = 'not-hosted';
+    renderSmol();
+    const shown = state('sft') === 'unavailable' && !column('sft').hidden && qs('.smol-note', column('sft')).textContent.length > 20 && qs('[data-action="smol-load"]', column('sft')).disabled;
+    const ignored = (() => { smolLoad('sft'); return state('sft') === 'unavailable'; })();
+    const source = smolSftSource();
+    const constantOk = source.remote === false && source.model === 'models/smollm2-135M-SFT-Only' && source.host.endsWith('/');
+    restore();
+    return { ok: shown && ignored && constantOk, value: `widoczna:${shown} bez pobierania:${ignored} stała:${constantOk}` };
+  });
+}
+
+async function runSmolRealProbe() {
+  refs.probe.hidden = false;
+  setAttr(refs.probe, 'data-probe-status', 'running');
+  setView('smollm');
+  await waitFor(() => App.smol.gpuChecked, 5000);
+  await new Promise((r) => setTimeout(r, 300));
+  const prompts = SMOL_PROMPTS;
+  const results = [];
+  await checkSftAvailability();
+  for (const key of SMOL_ORDER) {
+    const column = App.smol.columns[key];
+    if (column.state === 'unavailable') { setProbeRow(`real-${key}`, 'skip', `niedostępna: ${column.errorKind}`); continue; }
+    const started = nowMs();
+    smolLoad(key);
+    await waitFor(() => ['ready', 'error'].includes(column.state), 1200000);
+    if (column.state === 'error') { setProbeRow(`real-${key}`, 'fail', column.error); results.push({ key, error: column.error }); continue; }
+    const loadSeconds = Math.round((nowMs() - started) / 1000);
+    const outputs = [];
+    for (const prompt of prompts) {
+      App.smol.prompt = prompt;
+      App.smol.queue = [];
+      const sent = smolGenerateOne(key);
+      await waitFor(() => ['ready', 'error'].includes(column.state) && !App.smol.running, 600000);
+      outputs.push({ prompt, input: column.input, output: column.output, ms: column.ms, tokens: column.tokens, sent });
+    }
+    results.push({ key, backend: column.backend, dtype: column.dtype, fallback: column.fallback, loaded: column.loaded, total: column.total, loadSeconds, outputs });
+    setProbeRow(`real-${key}`, outputs.every((o) => o.output.length > 0) ? 'pass' : 'fail', `${column.backend}/${column.dtype}, ${loadSeconds} s`);
+    setAttr(refs.probe, 'data-real-results', JSON.stringify(results));
+    column.worker.terminate();
+    Object.assign(column, newSmolColumn(key), { checked: true });
+    renderSmol();
+  }
+  setAttr(refs.probe, 'data-real-results', JSON.stringify(results));
+  updateProbeCounts(false);
+}
+
+function smolGenerateOne(key) {
+  const smol = App.smol;
+  smol.currentPrompt = smol.prompt;
+  smol.queue.push(key);
+  smol.columns[key].output = '';
+  smolNextInQueue();
+  renderSmol();
+  return true;
+}
 
 // ─── Render ───
 // ─── Render: charts ───
@@ -4260,6 +4813,7 @@ function renderAll() {
   renderNotices();
   renderSamples();
   STAGE_ORDER.forEach(renderStepView);
+  renderSmol();
   STAGE_ORDER.forEach(renderStage);
   renderExperiments();
   renderRl();
@@ -4998,10 +5552,139 @@ function viewKrokRlHtml() {
 }
 
 function buildViews() {
-  const builders = { 'krok-pretraining': viewKrokPretrainingHtml, 'krok-sft': viewKrokSftHtml, 'krok-rl': viewKrokRlHtml, model: viewModelHtml, pretraining: viewPretrainingHtml, sft: viewSftHtml, rl: viewRlHtml, porownanie: viewPorownanieHtml, dane: viewDaneHtml, prawda: viewPrawdaHtml, quiz: viewQuizHtml };
+  const builders = { smollm: viewSmolHtml, 'krok-pretraining': viewKrokPretrainingHtml, 'krok-sft': viewKrokSftHtml, 'krok-rl': viewKrokRlHtml, model: viewModelHtml, pretraining: viewPretrainingHtml, sft: viewSftHtml, rl: viewRlHtml, porownanie: viewPorownanieHtml, dane: viewDaneHtml, prawda: viewPrawdaHtml, quiz: viewQuizHtml };
   refs.views.innerHTML = VIEW_ORDER.map((view) => `<div data-view-panel="${view}" data-words="0" id="view-${view}" hidden>${builders[view]()}</div>`).join('');
   refs.nav.innerHTML = VIEW_ORDER.map((view, i) => `<a class="nav-pill" data-view="${view}" href="#${view}" title="${Object.keys(VIEW_KEYS).find((key) => VIEW_KEYS[key] === view)}" data-index="${i + 1}">${t(VIEW_NAV_KEYS[view])}</a>`).join('');
   refs.nav.setAttribute('aria-label', t('navLabel'));
+}
+
+// ─── Render: SmolLM2 panel ───
+function renderSmolColumn(key) {
+  const el = qs(`[data-smol-column="${key}"]`);
+  if (!el) return;
+  const column = App.smol.columns[key];
+  setAttr(el, 'data-state', column.state);
+  setAttr(el, 'data-progress', column.progress);
+  setAttr(el, 'data-loaded', column.loaded);
+  setAttr(el, 'data-total', column.total);
+  setAttr(el, 'data-backend', column.backend);
+  setAttr(el, 'data-dtype', column.dtype);
+  setAttr(el, 'data-fallback', column.fallback);
+  setAttr(el, 'data-input', column.input);
+  setAttr(el, 'data-output', column.output);
+  setAttr(el, 'data-error', column.error);
+  setAttr(el, 'data-error-kind', column.errorKind);
+  setAttr(el, 'data-ms', column.ms);
+  setAttr(el, 'data-tokens', column.tokens);
+  setText(qs('.smol-state', el), t(`smolState_${column.state}`));
+  const loadBtn = qs('[data-action="smol-load"]', el);
+  const busy = column.state === 'downloading' || column.state === 'generating';
+  loadBtn.hidden = column.state === 'ready' || column.state === 'unavailable' || busy;
+  loadBtn.disabled = column.state === 'unavailable';
+  setText(loadBtn, t(column.state === 'error' ? 'smolRetry' : 'smolDownload', { size: smolMegabytes(smolDownloadBytes(key)) }));
+  qs('[data-action="smol-cancel"]', el).hidden = !busy;
+  const progressRow = qs('.smol-progress', el);
+  progressRow.hidden = column.state !== 'downloading';
+  qs('.smol-progress-fill', el).style.width = `${column.progress}%`;
+  setAttr(qs('.smol-progress-track', el), 'aria-valuenow', column.progress);
+  setText(qs('.smol-progress-text', el), column.total ? `${column.progress}% (${smolMegabytes(column.loaded)} z ${smolMegabytes(column.total)})` : t('smolStarting'));
+  let note = '';
+  if (column.state === 'unavailable') note = t(column.errorKind === 'needs-http' ? 'smolUnavailableHttp' : 'smolUnavailableHost');
+  setText(qs('.smol-note', el), note);
+  setText(qs('.smol-error', el), column.state === 'error' ? t('smolErrorShown', { message: column.error }) : '');
+  let backendText = '';
+  if (column.backend) {
+    backendText = t('smolBackend', { backend: column.backend === 'webgpu' ? 'WebGPU' : 'WASM', dtype: column.dtype, size: smolMegabytes(column.total || smolDownloadBytes(key)) });
+    if (column.fallback) backendText += ` ${t('smolFallback')}`;
+  }
+  setText(qs('.smol-backend', el), backendText);
+  setText(qs('.smol-input', el), column.input);
+  qs('.smol-input-row', el).hidden = !column.input;
+  setText(qs('.smol-output', el), column.output);
+  qs('.smol-output-row', el).hidden = !column.output && column.state !== 'generating';
+  setText(qs('.smol-timing', el), column.ms ? t('smolTiming', { tokens: column.tokens, seconds: fmt(column.ms / 1000, 1), rate: fmt(1000 * column.tokens / column.ms, 1) }) : '');
+}
+
+function renderSmol() {
+  const root = qs('[data-smol]');
+  if (!root) return;
+  const smol = App.smol;
+  setAttr(root, 'data-prompt', smol.prompt);
+  setAttr(root, 'data-queue', JSON.stringify(smol.queue));
+  setAttr(root, 'data-running', smol.running || '');
+  setAttr(root, 'data-engine', smol.engine);
+  qsa('[data-action="smol-engine"]').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.engine === smol.engine);
+    btn.setAttribute('aria-pressed', btn.dataset.engine === smol.engine);
+    btn.disabled = (btn.dataset.engine === 'webgpu' && !smol.gpuAvailable) || SMOL_ORDER.some((key) => ['downloading', 'generating'].includes(smol.columns[key].state));
+  });
+  setText(qs('#smol-engine-note'), t(smol.gpuAvailable ? 'smolEngineGpu' : 'smolEngineNoGpu'));
+  setAttr(root, 'data-settings', JSON.stringify(SMOL_GENERATION));
+  SMOL_ORDER.forEach(renderSmolColumn);
+  const input = qs('#smol-prompt');
+  if (document.activeElement !== input && input.value !== smol.prompt) input.value = smol.prompt;
+  setText(qs('#smol-prompt-error'), smol.promptError);
+  const anyReady = SMOL_ORDER.some((key) => smol.columns[key].state === 'ready');
+  qs('#smol-generate').disabled = !anyReady;
+  setText(qs('#smol-generate-hint'), anyReady ? '' : t('smolGenerateHint'));
+}
+
+function viewSmolHtml() {
+  const presets = SMOL_PROMPTS.map((p) => `<button type="button" data-action="smol-preset" data-prompt="${p}" lang="en">${p}</button>`).join('');
+  const tones = { base: ['tone-blue', 'book-open'], sft: ['tone-yellow', 'graduation-cap'], instruct: ['tone-green', 'thumbs-up'] };
+  const columns = SMOL_ORDER.map((key) => `<div class="card smol-column" data-smol-column="${key}" data-state="idle" data-progress="0" data-backend="" data-dtype="" data-input="" data-output="" data-error="" data-error-kind="" data-ms="0" data-tokens="0" data-loaded="0" data-total="0">
+      ${cardHead(tones[key][1], tones[key][0], t(`smolName_${key}`), '<span class="edu-chip tone-stone smol-state"></span>')}
+      <div class="card-body">
+        <p class="edu-small">${t(`smolWhat_${key}`)}</p>
+        <div class="controls">
+          <button type="button" class="btn-ghost" data-action="smol-load" data-key="${key}"></button>
+          <button type="button" class="btn-ghost" data-action="smol-cancel" data-key="${key}" hidden>${t('smolCancel')}</button>
+        </div>
+        <div class="smol-progress" hidden>
+          <div class="progress-track smol-progress-track" role="progressbar" aria-label="${t(`smolName_${key}`)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="smol-progress-fill"></span></div>
+          <p class="edu-small smol-progress-text"></p>
+        </div>
+        <p class="reason smol-note"></p>
+        <p class="err smol-error" role="alert"></p>
+        <p class="edu-small smol-backend"></p>
+        <div class="smol-input-row" hidden><p class="edu-overline">${t('smolInputLabel')}</p><pre class="smol-input" lang="en"></pre></div>
+        <div class="smol-output-row" hidden><p class="edu-overline">${t('smolOutputLabel')}</p><p class="sample-text smol-output" lang="en"></p></div>
+        <p class="edu-small smol-timing"></p>
+      </div>
+    </div>`).join('');
+  const sources = [['base', 'smolName_base'], ['sft', 'smolName_sft'], ['instruct', 'smolName_instruct']]
+    .map(([key, label]) => `<li><a href="${SMOL_MODELS[key].page}" target="_blank" rel="noopener">${t(label)}: ${SMOL_MODELS[key].page.replace('https://huggingface.co/', '')}</a></li>`).join('');
+  const extra = [['https://huggingface.co/HuggingFaceTB/SmolLM2-135M', 'smolSrcParent'], ['https://huggingface.co/datasets/HuggingFaceH4/ultrafeedback_binarized', 'smolSrcBinarized'], ['https://huggingface.co/datasets/openbmb/UltraFeedback', 'smolSrcUltra'], ['https://arxiv.org/abs/2310.01377', 'smolSrcUltraPaper'], ['https://arxiv.org/abs/2305.18290', 'smolSrcDpo'], ['https://arxiv.org/abs/2502.02737', 'smolSrcPaper'], ['https://github.com/huggingface/alignment-handbook/tree/main/recipes/smollm2', 'smolSrcRecipe']]
+    .map(([url, label]) => `<li><a href="${url}" target="_blank" rel="noopener">${t(label)}</a></li>`).join('');
+  return `<section class="sec"><div class="wrap">
+    ${secHead('sparkles', 'tone-ink', 'smolHead')}
+    ${heroHtml('tone-ink', 'smolHeroOver', 'smolHeroLead')}
+    <div class="split">
+      <div class="concept">
+        <div class="tile"><span class="badge tone-grape">${ic('languages')}</span><h4>${t('smolTileEnTitle')}</h4><p>${t('smolTileEnText')}</p></div>
+        <div class="tile"><span class="badge tone-green">${ic('scale')}</span><h4>${t('smolTileDpoTitle')}</h4><p>${t('smolTileDpoText')}</p></div>
+        <div class="tile"><span class="badge tone-red">${ic('triangle-alert')}</span><h4>${t('smolTileLieTitle')}</h4><p>${t('smolTileLieText')}</p></div>
+        <details class="more"><summary>${t('smolFold')}</summary>
+          <p>${t('smolFoldDpo')}</p><p>${t('smolFoldUltra')}</p><p>${t('smolFoldLineage')}</p><p>${t('smolFoldMeasure')}</p><p>${t('smolFoldLicence')}</p><p>${t('smolFoldConvert')}</p>
+        </details>
+      </div>
+      <div class="card lab" data-smol data-prompt="" data-engine="wasm" data-queue="[]" data-running="" data-settings="{}" data-nobudget><div class="card-body">
+        <div class="field"><label for="smol-prompt">${t('smolPromptLabel')}</label>
+          <input class="input" id="smol-prompt" type="text" lang="en" autocomplete="off" spellcheck="false">
+          <p class="err" id="smol-prompt-error" role="alert"></p></div>
+        <div class="edu-seg wrap-seg" role="group" aria-label="${t('smolPromptLabel')}">${presets}</div>
+        <div class="field"><span class="label" id="smol-engine-label">${t('smolEngine')}</span>
+          <div class="edu-seg wrap-seg" role="group" aria-labelledby="smol-engine-label"><button type="button" data-action="smol-engine" data-engine="webgpu">WebGPU</button><button type="button" data-action="smol-engine" data-engine="wasm">WASM</button></div>
+          <p class="reason" id="smol-engine-note"></p></div>
+        <div class="controls"><button type="button" class="edu-btn" id="smol-generate" data-action="smol-generate">${t('smolGenerate')}</button></div>
+        <p class="reason" id="smol-generate-hint"></p>
+        <p class="edu-small">${t('smolSettings', { tokens: SMOL_GENERATION.max_new_tokens, penalty: String(SMOL_GENERATION.repetition_penalty).replace('.', ',') })}</p>
+        <p class="edu-small">${t('smolConsent')}</p>
+      </div></div>
+    </div>
+    <div class="bench-grid smol-grid" data-nobudget>${columns}</div>
+    <div class="card" data-nobudget>${cardHead('book-marked', 'tone-ink', t('sourcesTitle'))}<div class="card-body"><ul class="plain">${sources}${extra}</ul></div></div>
+  </div></section>`;
 }
 
 // ─── Listeners ───
@@ -5013,6 +5696,8 @@ function setView(view) {
   });
   App.view = target;
   App.visited.add(target);
+  if (target === 'smollm' && !App.smol.columns.sft.checked) checkSftAvailability();
+  if (target === 'smollm') checkSmolEngine();
   saveVisited();
   renderView();
   if (changed) {
@@ -5077,6 +5762,11 @@ const ACTIONS = {
   'step-source': (el) => stepSetSource(el.dataset.key, el.dataset.src),
   'sample-reroll': (el) => { refreshSamples([el.dataset.kind]); renderSamples(); },
   'notice-train': (el) => { if (App.stages[el.dataset.key].status === 'ready') startStage(el.dataset.key); },
+  'smol-load': (el) => smolLoad(el.dataset.key),
+  'smol-engine': (el) => smolSetEngine(el.dataset.engine),
+  'smol-cancel': (el) => smolCancel(el.dataset.key),
+  'smol-generate': () => smolGenerate(),
+  'smol-preset': (el) => { App.smol.prompt = el.dataset.prompt; App.smol.promptError = ''; renderSmol(); },
   'help-open': () => openHelp(),
   'help-close': () => closeHelp(),
   'probe-rerun': (el) => App.probe.run(el.dataset.name),
@@ -5113,7 +5803,11 @@ function bindListeners() {
   });
   document.addEventListener('input', (event) => {
     const id = event.target.id;
-    if (id === 'next-prompt') {
+    if (id === 'smol-prompt') {
+      App.smol.prompt = event.target.value.slice(0, MAX_PROMPT_CHARS);
+      if (App.smol.prompt.trim()) App.smol.promptError = '';
+      setText(qs('#smol-prompt-error'), App.smol.promptError);
+    } else if (id === 'next-prompt') {
       App.next.text = event.target.value;
       App.next.appended = []; App.next.sampled = '';
       const parsed = parsePrompt(event.target.value);
@@ -5148,6 +5842,7 @@ function bindListeners() {
   });
   document.addEventListener('keydown', (event) => {
     if (event.target && event.target.id === 'cmp-free' && event.key === 'Enter') { applyComparePrompt(); return; }
+    if (event.target && event.target.id === 'smol-prompt' && event.key === 'Enter') { smolGenerate(); return; }
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (refs.help.open) return;
     if (isTypingTarget(event.target)) return;
@@ -5169,6 +5864,8 @@ function bindListeners() {
         const button = qs(`#train-${stageKey}`);
         if (button && !button.disabled && stage.status !== 'done' && stage.status !== 'error') trainToggle(stageKey);
       }
+    } else if ((key === 'g' || key === 'G') && App.view === 'smollm') {
+      smolGenerate();
     } else if ((key === 'n' || key === 'N') && App.view === 'model') {
       sampleNextToken();
     } else if (key === '?') {
@@ -5206,6 +5903,7 @@ function init() {
   App.stepGrad = new Float64Array(App.shape.total);
   App.stepSets = { corpus: exampleSets(App.data).corpusTrain, sft: makeSftExamples(App.data.demoSeqs).train };
   STAGE_ORDER.forEach((key) => { App.steps[key] = newStep(key); });
+  initSmol();
   const params = new URLSearchParams(window.location.search);
   const seedParam = Number(params.get('seed'));
   const seed = Number.isInteger(seedParam) && seedParam >= 1 && seedParam <= 9999 ? seedParam : DEFAULT_SEED;
@@ -5219,7 +5917,7 @@ function init() {
   qs('#help-open').textContent = t('helpOpen');
   qs('#help-title').textContent = t('helpTitle');
   qs('#help-close').textContent = t('helpClose');
-  qs('#help-list').innerHTML = ['helpViews', 'helpTrain', 'helpNext', 'helpSteps', 'helpHelp'].map((key) => `<li>${t(key)}</li>`).join('');
+  qs('#help-list').innerHTML = ['helpViews', 'helpTrain', 'helpNext', 'helpSteps', 'helpSmol', 'helpHelp'].map((key) => `<li>${t(key)}</li>`).join('');
   qs('#footer-text').textContent = t('footer');
   qs('#skip-link').textContent = t('skipLink');
   qs('#train-bar-pause').textContent = t('btnPause');
@@ -5254,6 +5952,7 @@ function init() {
   const probeMode = params.get('probe');
   if (probeMode === '1') App.probe.run();
   else if (probeMode === 'seeds') App.probe.seeds();
+  else if (probeMode === 'smollm') runSmolRealProbe();
   else if (params.get('autorun') === '1') startPipeline();
 }
 
