@@ -674,6 +674,7 @@ const SMOL_LIB_SHA384 = 'xFDNfwR3J/vPYzGjMr1VSM8LHIcA+ii2Ha4x+6WAuISKpT9I0dxgF/m
 // int8 is slow on WebGPU, and fp16 went wrong on an Intel iGPU.
 const SMOL_DTYPE = { webgpu: 'fp32', wasm: 'int8' };
 const SMOL_GENERATION = { max_new_tokens: 60, do_sample: false, repetition_penalty: 1.2 };
+const SMOL_CANCEL_TIMEOUT_MS = 5000;
 const SMOL_DEFAULT_PROMPT = 'What is the capital of France?';
 const SMOL_PROMPTS = ['What is the capital of France?', 'List three fruits.', 'Why is the sky blue?'];
 const SMOL_ORDER = ['base', 'sft', 'instruct'];
@@ -706,6 +707,7 @@ async function load(msg) {
   const lib = await loadLibrary(msg.libUrl, msg.libSha);
   const { pipeline, env } = lib;
   self.textStreamer = lib.TextStreamer;
+  self.stopperClass = lib.InterruptableStoppingCriteria;
   env.allowRemoteModels = true;
   env.allowLocalModels = false;
   if (msg.host) { env.remoteHost = msg.host; env.remotePathTemplate = '{model}/'; }
@@ -733,6 +735,19 @@ async function load(msg) {
     device = 'wasm';
     generator = await pipeline('text-generation', msg.model, { dtype: msg.dtype.wasm, device, progress_callback });
   }
+  // ONNX Runtime runs each step without returning to the event loop, so an interrupt message would wait
+  // for the whole answer. A macrotask at most every 150 ms lets the message arrive between tokens;
+  // yielding before every token was about 40% slower in two A/B rounds on a busy machine.
+  const channel = new MessageChannel();
+  const queue = [];
+  channel.port1.onmessage = () => { const next = queue.shift(); if (next) next(); };
+  const yieldTask = () => new Promise((resolve) => { queue.push(resolve); channel.port2.postMessage(0); });
+  const forward = generator.model.forward.bind(generator.model);
+  let lastYield = performance.now();
+  generator.model.forward = async (inputs) => {
+    if (performance.now() - lastYield > 150) { await yieldTask(); lastYield = performance.now(); }
+    return forward(inputs);
+  };
   self.postMessage({ type: 'ready', backend: device, dtype: msg.dtype[device], fallback, loadMs: Math.round(performance.now() - start) });
 }
 
@@ -744,18 +759,22 @@ async function generate(msg) {
   let text = '';
   let tokens = 0;
   const start = performance.now();
+  const stopper = new self.stopperClass();
+  self.stopper = stopper;
   const streamer = new self.textStreamer(tokenizer, {
     skip_prompt: true,
     skip_special_tokens: true,
     callback_function: (piece) => { text += piece; self.postMessage({ type: 'token', text }); },
     token_callback_function: () => { tokens += 1; },
   });
-  await generator(msg.chat ? messages : msg.prompt, { ...msg.settings, streamer });
-  self.postMessage({ type: 'done', text, tokens, ms: Math.round(performance.now() - start) });
+  await generator(msg.chat ? messages : msg.prompt, { ...msg.settings, streamer, stopping_criteria: stopper });
+  self.stopper = null;
+  self.postMessage({ type: 'done', text, tokens, ms: Math.round(performance.now() - start), interrupted: stopper.interrupted });
 }
 
 self.onmessage = async (event) => {
   try {
+    if (event.data.type === 'interrupt') { if (self.stopper) self.stopper.interrupt(); return; }
     if (event.data.type === 'load') await load(event.data);
     else if (event.data.type === 'generate') await generate(event.data);
   } catch (err) {
@@ -1252,7 +1271,7 @@ const T = {
   krokFoldPre: 'Co tu jest uproszczone',
   krokFoldPreText: 'Trening używa paczki {batch} przykładów, a tu jest jeden, żeby ruch był widoczny. Tempo uczenia to startowa wartość etapu: {lr}. Stan Adama należy do tej kopii, więc kolejne kroki kumulują się, a główny model pozostaje nietknięty.',
   krokFoldSftText: 'Trening używa paczki {batch} przykładów, a tu jest jeden. Cel zawsze pochodzi z odpowiedzi, a kontekstem jest polecenie i początek odpowiedzi. Główne wagi pozostają nietknięte.',
-  krokFoldRlText: 'Trening używa {batch} odpowiedzi w kroku, a tu są dwie, a linią bazową jest ich średnia. Nagroda to wynik modelu nagrody minus kara KL ze współczynnikiem {kl}. Główne wagi pozostają nietknięte.',
+  krokFoldRlText: 'Trening używa {batch} odpowiedzi w kroku, a tu są dwie, a linią bazową jest ich średnia. Nagroda to wynik modelu nagrody minus kara KL ze współczynnikiem {kl}. Model nagrody nie wie, który fakt jest prawdziwy: widzi tylko tokeny i długość. Gdy model uczy się tego, co nagroda mierzy, zamiast tego, co miała mierzyć, mówimy o oszukiwaniu nagrody (reward hacking). Główne wagi pozostają nietknięte.',
   stepNext: 'Następny krok',
   stepNextExample: 'Następny przykład',
   stepBack: 'Poprzedni krok',
@@ -1319,6 +1338,8 @@ const T = {
   diffPreStart: 'losowe wagi',
   diffSftStart: 'wagi po pretrainingu',
   samePhases: 'Strata i krok są te same. Zmieniają się dane i cel.',
+  rlFormTitle: 'Forma, nie fakty',
+  rlFormText: 'Model nagrody liczy tokeny i długość, więc pełne zdanie z błędem może wygrać z krótką prawdą.',
   rlDiffTitle: 'Czym ten krok różni się od SFT',
   rlDiffText: 'Nie ma tu wzorca. Sygnałem jest nagroda za odpowiedź napisaną przez sam model.',
 
@@ -1352,6 +1373,8 @@ const T = {
   smolDownload: 'Pobierz: {size}',
   smolRetry: 'Spróbuj ponownie: {size}',
   smolCancel: 'Anuluj',
+  smolStop: 'Zatrzymaj odpowiedź',
+  smolInterrupted: 'Odpowiedź przerwano. Model zostaje wczytany, więc możesz od razu generować dalej.',
   smolStarting: 'Start…',
   smolName_base: 'Baza',
   smolName_sft: 'SFT',
@@ -3198,8 +3221,18 @@ function probeChecks() {
     const vals = JSON.parse(el.dataset.values);
     const rises = vals[pref].logPAfter > vals[pref].logPBefore;
     const mainSame = App.stages.sft.hash === main;
+    const standin = first.rewardKind === 'standin' && qs('#step-rl-kind').textContent.includes('Zastępczy');
+    await runShortStages(['rl']);
+    renderStepView(key);
+    const afterRl = JSON.parse(el.dataset.values);
+    const usesMain = el.dataset.state === 'ready' && afterRl.rewardKind === 'main' && afterRl.labeller === App.rl.mainLabeller && qs('#step-rl-kind').textContent.includes('głównego') && App.steps.rl.rewardModel === App.rl.reward;
+    const mainScore = (() => { const m = App.rl.reward; const raw = (rewardScore(m, rewardFeatures(afterRl.a.tokens)) - m.mean) / m.std; return Math.abs(Math.max(-TRAIN.rl.rewardClip, Math.min(TRAIN.rl.rewardClip, raw)) - afterRl.a.score) < 1e-9; })();
+    resetStage('rl');
+    renderStepView(key);
+    await waitFor(() => { renderStepView(key); return el.dataset.state === 'ready' && el.dataset.values !== 'null'; }, 30000);
+    const backToStandin = JSON.parse(el.dataset.values).rewardKind === 'standin';
     probeReset();
-    return { ok: needs && different && promptOk && prefHigher && rises && mainSame, value: `wymaga:${needs} różne:${different} prompt:${promptOk} wyższa:${prefHigher} logP ${vals[pref].logPBefore.toFixed(3)} -> ${vals[pref].logPAfter.toFixed(3)} główny:${mainSame}` };
+    return { ok: needs && different && promptOk && prefHigher && rises && mainSame && standin && usesMain && mainScore && backToStandin, value: `wymaga:${needs} różne:${different} prompt:${promptOk} wyższa:${prefHigher} logP ${vals[pref].logPBefore.toFixed(3)} -> ${vals[pref].logPAfter.toFixed(3)} główny:${mainSame} zastępczy:${standin} po RL główny model:${usesMain}/${mainScore} po resecie:${backToStandin}` };
   });
   add('step-keyboard', async () => {
     probeReset();
@@ -3459,7 +3492,19 @@ function syncStep(step) {
     resetStepBranch(step);
   } else if (step.key === 'rl') {
     const main = App.rl.reward;
-    if (main && step.rewardFrom !== main) { step.rewardModel = main; step.rewardFrom = main; step.rewardKind = 'main'; }
+    if (main && step.rewardFrom !== main) {
+      // The main reward model has appeared or changed: rescore with it on a fresh example, never keep stand-in values.
+      stopAutoplay(step);
+      step.rewardModel = main; step.rewardFrom = main; step.rewardKind = 'main';
+      if (step.branch) newStepExample(step);
+    } else if (!main && step.rewardKind === 'main') {
+      // The main RL run was reset: fall back to the stand-in, built again from the current SFT weights.
+      stopAutoplay(step);
+      step.rewardModel = null; step.rewardFrom = null; step.rewardKind = ''; step.sourceParams = null;
+      step.state = 'ready';
+      prepareStepReward(step);
+      if (step.state !== 'preparing') resetStepBranch(step);
+    }
   }
 }
 
@@ -3751,7 +3796,7 @@ function noticeTarget(stages) { return stages.find((key) => App.stages[key].stat
 
 // ─── Helpers: SmolLM2 panel (optional, real model in a worker) ───
 function newSmolColumn(key) {
-  return { key, state: 'idle', progress: 0, loaded: 0, total: 0, backend: '', dtype: '', fallback: '', input: '', output: '', error: '', errorKind: '', ms: 0, tokens: 0, loadMs: 0, worker: null, checked: false };
+  return { key, state: 'idle', interrupted: false, cancelling: false, cancelTimer: null, progress: 0, loaded: 0, total: 0, backend: '', dtype: '', fallback: '', input: '', output: '', error: '', errorKind: '', ms: 0, tokens: 0, loadMs: 0, worker: null, checked: false };
 }
 
 function initSmol() {
@@ -3890,9 +3935,10 @@ function smolMessage(key, msg) {
     column.output = msg.text;
     renderSmolColumn(key);
   } else if (msg.type === 'done') {
-    Object.assign(column, { state: 'ready', output: msg.text, ms: msg.ms, tokens: msg.tokens });
+    if (column.cancelTimer) clearTimeout(column.cancelTimer);
+    Object.assign(column, { state: 'ready', output: msg.text, ms: msg.ms, tokens: msg.tokens, interrupted: !!msg.interrupted, cancelling: false, cancelTimer: null });
     App.smol.running = null;
-    announce(t('smolLiveDone', { name: t(`smolName_${key}`) }));
+    announce(t(msg.interrupted ? 'smolLiveCancel' : 'smolLiveDone', { name: t(`smolName_${key}`) }));
     smolNextInQueue();
     renderSmol();
   } else if (msg.type === 'error') {
@@ -3904,6 +3950,21 @@ function smolMessage(key, msg) {
 function smolCancel(key) {
   const column = App.smol.columns[key];
   if (!['downloading', 'generating'].includes(column.state)) return;
+  if (column.state === 'generating') {
+    // Stop this answer only: the model stays loaded. A worker that does not stop in time is dropped as before.
+    if (column.cancelling) return;
+    column.cancelling = true;
+    column.worker.postMessage({ type: 'interrupt' });
+    column.cancelTimer = setTimeout(() => { if (column.cancelling) smolTerminate(key); }, SMOL_CANCEL_TIMEOUT_MS);
+    renderSmol();
+    return;
+  }
+  smolTerminate(key);
+}
+
+function smolTerminate(key) {
+  const column = App.smol.columns[key];
+  if (column.cancelTimer) clearTimeout(column.cancelTimer);
   if (column.worker) column.worker.terminate();
   Object.assign(column, newSmolColumn(key), { checked: column.checked });
   App.smol.queue = App.smol.queue.filter((item) => item !== key);
@@ -3921,7 +3982,7 @@ function smolGenerate() {
   if (!ready.length) { renderSmol(); return false; }
   smol.queue.push(...ready);
   smol.currentPrompt = smol.prompt;
-  ready.forEach((key) => { smol.columns[key].output = ''; smol.columns[key].ms = 0; smol.columns[key].tokens = 0; });
+  ready.forEach((key) => { Object.assign(smol.columns[key], { output: '', ms: 0, tokens: 0, interrupted: false }); });
   smolNextInQueue();
   renderSmol();
   return true;
@@ -3953,9 +4014,11 @@ function createMockSmolWorker(behaviour) {
         if (behaviour === 'fail-load') { mock.emit({ type: 'error', message: 'mock-failure' }, 2); return; }
         const backend = behaviour === 'gpu-fail' ? 'wasm' : msg.device;
         mock.emit({ type: 'ready', backend, dtype: msg.dtype[backend], fallback: behaviour === 'gpu-fail' ? 'mock-gpu-error' : '', loadMs: 1 }, 3);
+      } else if (msg.type === 'interrupt') {
+        if (mock.waiting) { mock.waiting = false; mock.emit({ type: 'done', text: 'mock partial', tokens: 1, ms: 2, interrupted: true }, 1); }
       } else if (msg.type === 'generate') {
         mock.emit({ type: 'input', input: msg.chat ? `<chat>${msg.prompt}` : msg.prompt }, 1);
-        if (behaviour === 'hang-generate') return;
+        if (behaviour === 'hang-generate') { mock.waiting = true; return; }
         if (behaviour === 'fail-generate') { mock.emit({ type: 'error', message: 'mock-generate-failure' }, 2); return; }
         mock.emit({ type: 'token', text: 'mock' }, 2);
         mock.emit({ type: 'done', text: 'mock output', tokens: 2, ms: 3 }, 3);
@@ -4021,9 +4084,13 @@ function smolProbeChecks(add) {
     smolGenerate();
     const generating = state('instruct') === 'generating';
     smolCancel('instruct');
-    const stopped = state('instruct') === 'idle' && created.instruct.closed && App.smol.running === null;
+    await until(() => state('instruct') === 'ready');
+    const stopped = state('instruct') === 'ready' && !created.instruct.closed && App.smol.running === null && column('instruct').getAttribute('data-interrupted') === 'true' && qs('.smol-note', column('instruct')).textContent.length > 0;
+    created.instruct.sent.length = 0;
+    smolGenerate();
+    const again = created.instruct.sent.some((m) => m.type === 'generate') && created.instruct.sent.every((m) => m.type !== 'load');
     restore();
-    return { ok: was && cancelled && generating && stopped, value: `pobieranie:${was}/${cancelled} generowanie:${generating}/${stopped}` };
+    return { ok: was && cancelled && generating && stopped && again, value: `pobieranie:${was}/${cancelled} generowanie:${generating}/${stopped} model zostaje:${again}` };
   });
   add('smol-errors', async () => {
     reset({ base: 'fail-load', instruct: 'fail-generate' });
@@ -5546,6 +5613,7 @@ function viewKrokRlHtml() {
         <div class="row-head"><span class="badge tone-green">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
         ${chainHtml(['phasePair', 'phaseScore', 'phaseRlUpdate', 'phaseShift'])}
         <div class="tile"><span class="badge tone-green">${ic('git-compare')}</span><h4>${t('rlDiffTitle')}</h4><p>${t('rlDiffText')}</p></div>
+        <div class="tile" id="rl-form-note"><span class="badge tone-red">${ic('triangle-alert')}</span><h4>${t('rlFormTitle')}</h4><p>${t('rlFormText')}</p></div>
         <details class="more"><summary>${t('krokFoldPre')}</summary><p>${t('krokFoldRlText', { batch: TRAIN.rl.batch, kl: String(TRAIN.rl.klBeta).replace('.', ',') })}</p></details>
       </div>
       <div class="card lab" data-step-view="rl" data-nobudget><div class="card-body">
@@ -5585,6 +5653,7 @@ function renderSmolColumn(key) {
   setAttr(el, 'data-error-kind', column.errorKind);
   setAttr(el, 'data-ms', column.ms);
   setAttr(el, 'data-tokens', column.tokens);
+  setAttr(el, 'data-interrupted', column.interrupted);
   setText(qs('.smol-state', el), t(`smolState_${column.state}`));
   const loadBtn = qs('[data-action="smol-load"]', el);
   const busy = column.state === 'downloading' || column.state === 'generating';
@@ -5592,7 +5661,10 @@ function renderSmolColumn(key) {
   loadBtn.hidden = column.state === 'ready' || (column.state === 'unavailable' && !retryable) || busy;
   loadBtn.disabled = column.state === 'unavailable' && !retryable;
   setText(loadBtn, t(retryable ? 'smolRetry' : 'smolDownload', { size: smolMegabytes(smolDownloadBytes(key)) }));
-  qs('[data-action="smol-cancel"]', el).hidden = !busy;
+  const cancelBtn = qs('[data-action="smol-cancel"]', el);
+  cancelBtn.hidden = !busy;
+  cancelBtn.disabled = column.cancelling;
+  setText(cancelBtn, t(column.state === 'generating' ? 'smolStop' : 'smolCancel'));
   const progressRow = qs('.smol-progress', el);
   progressRow.hidden = column.state !== 'downloading';
   qs('.smol-progress-fill', el).style.width = `${column.progress}%`;
@@ -5601,6 +5673,7 @@ function renderSmolColumn(key) {
   let note = '';
   if (column.state === 'unavailable') note = t({ 'needs-http': 'smolUnavailableHttp', 'fetch-failed': 'smolUnavailableFetch' }[column.errorKind] || 'smolUnavailableHost');
   if (column.state === 'unavailable' && column.error) note += ` ${t('smolErrorShown', { message: column.error })}`;
+  if (column.state === 'ready' && column.interrupted) note = t('smolInterrupted');
   setText(qs('.smol-note', el), note);
   setText(qs('.smol-error', el), column.state === 'error' ? t('smolErrorShown', { message: column.error }) : '');
   let backendText = '';
