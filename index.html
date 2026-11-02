@@ -1346,7 +1346,7 @@ const T = {
   smolGenerateHint: 'Najpierw pobierz przynajmniej jeden model.',
   smolSettings: 'Ustawienia, takie same w każdej kolumnie: do {tokens} nowych tokenów, bez losowania, kara za powtórzenia {penalty}.',
   smolEngine: 'Silnik',
-  smolEngineGpu: 'WebGPU: pełne wagi, większe pobranie, szybciej. WASM: wagi 8-bitowe, mniejsze pobranie. Jeśli WebGPU zawiedzie, kolumna przejdzie na WASM i to napisze.',
+  smolEngineGpu: 'Domyślnie WASM: wagi 8-bitowe, około czterech razy mniejsze pobranie, podobny czas odpowiedzi. WebGPU: pełne wagi, do wyboru. Jeśli WebGPU zawiedzie, kolumna przejdzie na WASM i to napisze.',
   smolEngineNoGpu: 'WebGPU nie jest tu dostępne, więc model działa przez WASM z wagami 8-bitowymi.',
   smolConsent: 'Nic nie pobiera się samo. Pobieranie rusza po kliknięciu przycisku w kolumnie, a przeglądarka zachowuje pliki w swojej pamięci.',
   smolDownload: 'Pobierz: {size}',
@@ -3777,7 +3777,7 @@ function smolSftSource() {
   return { remote: false, model, host, checkUrl: `${folder}/config.json` };
 }
 
-// Looks for WebGPU without downloading anything. WebGPU becomes the default engine only when an adapter exists.
+// Looks for WebGPU without downloading anything. WASM int8 stays the default; WebGPU is an opt-in switch.
 async function checkSmolEngine() {
   const smol = App.smol;
   if (smol.gpuChecked) return;
@@ -3788,7 +3788,6 @@ async function checkSmolEngine() {
   } catch (err) {
     smol.gpuAvailable = false;
   }
-  if (smol.gpuAvailable && !smol.engineChosen) smol.engine = 'webgpu';
   renderSmol();
 }
 
@@ -3983,7 +3982,8 @@ function smolProbeChecks(add) {
     const idle = ['base', 'instruct'].every((key) => state(key) === 'idle');
     const told = SMOL_ORDER.every((key) => /MB/.test(qs('[data-action="smol-load"]', column(key)).textContent));
     const worker = SMOL_ORDER.every((key) => App.smol.columns[key].worker === null);
-    return { ok: external.length === 0 && noLib && idle && told && worker, value: `bez sieci:${external.length === 0} stan:${idle} rozmiar w przycisku:${told} bez procesu:${worker}` };
+    const wasmDefault = App.smol.engine === 'wasm' && qs('[data-smol]').getAttribute('data-engine') === 'wasm';
+    return { ok: external.length === 0 && noLib && idle && told && worker && wasmDefault, value: `bez sieci:${external.length === 0} stan:${idle} rozmiar w przycisku:${told} bez procesu:${worker} domyślnie WASM:${wasmDefault}` };
   });
   add('smol-flow', async () => {
     const created = reset();
