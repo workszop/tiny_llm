@@ -387,6 +387,8 @@ details.more > :not(summary) { margin: 10px 14px; font-size: var(--body-sm); }
 .key-ink { background: var(--ink); }
 .key-blue { background: repeating-linear-gradient(90deg, var(--blue-600) 0 6px, transparent 6px 10px); }
 .log-head { margin: 6px 0 0; }
+.card-part { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.card-part > .reason { margin: 0; }
 .log { max-height: 150px; overflow-y: auto; display: grid; gap: 4px; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; background: var(--paper-2); }
 .log-short { max-height: 130px; }
 .log-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; font-size: var(--body-sm); }
@@ -924,7 +926,8 @@ const T = {
   logEmpty: 'Próbki pojawią się po starcie treningu.',
   topEmpty: 'Typy pojawią się po starcie treningu.',
   logStep: 'krok {step}',
-  topTitle: 'Co model typuje po „Stolicą Francji jest”',
+  topTitle: 'Osobne pytanie: jaki token model wstawi po „Stolicą Francji jest”?',
+  topLead: 'Trzy najbardziej prawdopodobne następne tokeny w kolejnych krokach treningu. Na początku przypadkowe, z czasem coraz bliżej „Paryż”.',
 
   sameTitle: 'Ten sam prompt',
   sameUntrained: 'Jeszcze nie wytrenowano. Tu nie ma przykładów na niby, tylko prawdziwe próbki po treningu.',
@@ -1013,7 +1016,9 @@ const T = {
   neighAfter: 'po pretrainingu',
   neighAfterLocked: 'Wariant „po pretrainingu” będzie dostępny po treningu.',
   neighTitle: 'Najbliżsi sąsiedzi',
-  neighToken: 'Token',
+  neighToken: 'Słowo, którego sąsiadów szukamy',
+  neighListHead: 'Najbliższe słowa w wektorach (podobieństwo 0–1)',
+  neighListNote: 'To nie jest zgadywanie następnego tokenu. Model nie przewiduje tu nic: porównujemy tylko, które słowa mają podobne wektory.',
   preDataTitle: 'Jakie dane',
   preDataText: 'Zwykły tekst z sieci i książek. Nikt go nie oznacza, tylko filtruje. Dla GPT-3: 300 mld tokenów.',
   preExpTitle: 'Złe dane: pomieszany korpus',
@@ -5634,9 +5639,14 @@ function viewPretrainingHtml() {
           <p class="reason" id="neigh-reason"></p>
           <div class="field"><label for="neigh-token">${t('neighToken')}</label>
           <select class="input" id="neigh-token">${['Paryż', 'Warszawa', 'Polski', 'Francji', 'Kot', 'Pies', 'jabłko', 'czerwony'].map((tok) => `<option>${tok}</option>`).join('')}</select></div>
+          <p class="edu-overline log-head">${t('neighListHead')}</p>
           <div class="tokens" id="neigh-list"></div>
-          <p class="edu-overline log-head">${t('topTitle')}</p>
-          <div class="log log-short" id="top-pretrain"></div>
+          <p class="reason">${t('neighListNote')}</p>
+          <div class="card-part">
+            <p class="edu-overline">${t('topTitle')}</p>
+            <p class="reason">${t('topLead')}</p>
+            <div class="log log-short" id="top-pretrain"></div>
+          </div>
         </div></div>
     </div>
   </div></section>
