@@ -2408,15 +2408,12 @@ function computePretrainInitialLoss(stage) {
 // (surrogate pairs, ZWJ emoji, skin tones, flags, combining marks).
 function clipPrompt(raw) {
   if (raw.length <= MAX_PROMPT_CHARS) return { text: raw, trimmed: false };
-  let end = MAX_PROMPT_CHARS;
-  if (GRAPHEME_SEGMENTER) {
-    for (const { index, segment } of GRAPHEME_SEGMENTER.segment(raw.slice(0, MAX_PROMPT_CHARS + 64))) {
-      if (index + segment.length > MAX_PROMPT_CHARS) { end = index; break; }
-    }
-  } else {
-    const last = raw.charCodeAt(end - 1);
-    if (last >= 0xD800 && last <= 0xDBFF) end -= 1;
-  }
+  // The grapheme that holds code unit MAX_PROMPT_CHARS either starts there (cut at the limit) or straddles it (cut before it).
+  let end = GRAPHEME_SEGMENTER ? GRAPHEME_SEGMENTER.segment(raw.slice(0, MAX_PROMPT_CHARS + 64)).containing(MAX_PROMPT_CHARS).index : MAX_PROMPT_CHARS;
+  // A single grapheme longer than the limit (a letter under hundreds of combining marks) would leave nothing; cut inside it instead.
+  if (end === 0) end = MAX_PROMPT_CHARS;
+  const last = raw.charCodeAt(end - 1);
+  if (last >= 0xD800 && last <= 0xDBFF) end -= 1;
   return { text: raw.slice(0, end), trimmed: true };
 }
 function parsePrompt(text) {
@@ -2438,13 +2435,15 @@ function readPromptField(field, owner) {
       field.setSelectionRange(pos, pos);
     }
     owner.clippedText = clip.text;
+  } else if (owner.clippedText !== clip.text) {
+    owner.clippedText = null; // the user edited away from the cut text; typing it back by hand is not a trim
   }
   return clip.text;
 }
 // A prompt counts as trimmed while it is exactly the text its field was last cut to, so applying it again
 // (Enter, then change, then click) keeps the notice, and any other text (a preset, an edit) clears it.
 function wasClipped(owner, text) {
-  return owner.clippedText !== null && owner.clippedText === text;
+  return owner.clippedText === text;
 }
 function idsToTokens(ids) { return ids.map((id) => App.data.vocab.list[id]); }
 
@@ -2733,7 +2732,7 @@ function changeSeed(value) {
   initEngine(seed);
   App.next.checkpoint = 'random';
   App.next.appended = [];
-  App.bench.columns = {};
+  refreshBench();
   refreshSamples();
   renderAll();
   announce(t('seedChanged', { seed }));
