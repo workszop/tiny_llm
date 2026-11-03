@@ -1,6 +1,6 @@
 # Jak uczy się model językowy
 
-Lekcja w przeglądarce: pretraining, SFT i RL na małym modelu trenowanym na żywo, bez serwera.
+Lekcja w przeglądarce: pretraining, SFT i RL w symulacji ze scenariuszami, bez serwera. Prawdziwy model jest tylko w panelu SmolLM2.
 Strona: https://workszop.github.io/tiny_llm/
 
 ## Co jest w środku
@@ -9,26 +9,23 @@ Strona: https://workszop.github.io/tiny_llm/
 - `fonts/` - czcionki Outfit, IBM Plex Sans i Roboto Mono (woff2, licencja OFL), serwowane lokalnie, bez zapytań do Google.
 - `models/` (ignorowany przez git) - lokalna konwersja SmolLM2-135M-SFT-Only do ONNX, opisana niżej.
 
-Model z lekcji to sieć Bengio i in. (2003): okno 8 tokenów, wektory słów o 24 wymiarach, 128 neuronów ukrytych, softmax na słowniku.
-Korpus, demonstracje SFT i symulowani oceniający są zbudowane w kodzie z list w sekcji stałych.
+Trening jest symulowany: każdy etap ma scenariusz (krzywa straty lub nagrody, próbki w trakcie treningu, zestaw typowych odpowiedzi po etapie).
+Każdy etap uczy jednego pojęcia: pretraining to następne słowo (korpus nad treningiem), SFT to pytanie i odpowiedź (tabela par nad treningiem), RL to preferowana odpowiedź (pary z wyborem oceniającego nad treningiem). Po SFT odpowiedzi są poprawne, ale bywają niepełne, a na szkodliwe pytania (narkotyki, kradzież) model pomaga; RL uczy pełnych odpowiedzi i odmowy. Treść szkodliwych odpowiedzi jest w lekcji zamaskowana (███).
+Jeden zestaw scenariuszy (`outcomes()` w kodzie) zasila widok Porównanie, laboratorium następnego tokenu, pary RL i metryki, więc wszystkie widoki się zgadzają.
+Strony „Krok” pokazują jeden krok treningu na wybranych przykładach, w trzech momentach treningu (początek, środek, koniec), z liczbami dobranymi tak, by mechanizm był widoczny.
+Korpus, demonstracje SFT i prompty są prawdziwe i zbudowane w kodzie z list w sekcji stałych. Widok „Co jest prawdziwe” rozdziela to, co prawdziwe, od tego, co symulowane.
+
 
 ## Widoki
 
 Klawisze 1-8 przełączają główne widoki (model, pretraining, SFT, RL, porównanie, dane, prawda, quiz), 9, 0 i - strony z pojedynczym krokiem treningu, = panel SmolLM2.
 Skróty jednoklawiszowe można wyłączyć w oknie pomocy (?).
 
-Wytrenowane wagi i stan RL są zapisywane w IndexedDB przeglądarki i wracają po odświeżeniu, dopóki ziarno losowości jest to samo.
-Zmiana ziarna kasuje zapis.
-
-## Walidacja
-
-- Pretraining: korpus powtarza linie wielokrotnie, więc podział na trening i walidację idzie po unikalnych liniach. Wszystkie kopie linii walidacyjnej są poza treningiem.
-- SFT: walidacja to demonstracje dla promptów wyłączonych z SFT (`sft: false` w stałych), na których model nigdy nie trenuje.
+Ukończone etapy, wybór oceniającego i własne oceny par są zapisywane w localStorage i wracają po odświeżeniu. Reset etapu kasuje późniejsze etapy.
 
 ## Testy
 
-- `index.html?probe=1` - zestaw sprawdzeń DOM i logiki, wynik w tabeli i w `data-probe-status`.
-- `index.html?probe=seeds` - pełny trening dla kilku ziaren z metrykami jakości.
+- `index.html?probe=1` - zestaw sprawdzeń DOM i logiki symulacji (scenariusze, przebieg etapów, pauza i reset, laboratorium tokenów, strony Krok, oceniający, zapis stanu), wynik w tabeli i w `data-probe-status`.
 - `index.html?probe=smollm` - test panelu SmolLM2 z prawdziwymi modelami.
 
 Headless: uruchom `python3 -m http.server`, otwórz adres z parametrem w Playwright lub Chrome i odczytaj `#probe[data-probe-status]`.
