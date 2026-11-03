@@ -5,9 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGRkQ1MDAiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4IDgpIHNjYWxlKDIpIiBmaWxsPSJub25lIiBzdHJva2U9IiMxQzE5MTciIHN0cm9rZS13aWR0aD0iMi4yNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4gIDxwYXRoIGQ9Ik0xMiAxOFY1IiAvPiAgPHBhdGggZD0iTTE1IDEzYTQuMTcgNC4xNyAwIDAxLTMtNCA0LjE3IDQuMTcgMCAwMS0zIDQiIC8+ICA8cGF0aCBkPSJNMTcuNzA3IDYuMjk0QTMgMyAwIDEwMTIgNWEzIDMgMCAxMC01LjcwNyAxLjI5NCIgLz4gIDxwYXRoIGQ9Ik0xNy45OTYgNS4xMjVhNCA0IDAgMDEyLjUyNiA1Ljc3IiAvPiAgPHBhdGggZD0iTTE4IDE4YTQgNCAwIDAwMi03LjQ2NSIgLz4gIDxwYXRoIGQ9Ik0xOS45NjcgMTcuNDgyYTQgNCAwIDExLTcuOTY3LjUxNyA0IDQgMCAxMS03Ljk2Ny0uNTE3IiAvPiAgPHBhdGggZD0iTTYgMThhNCA0IDAgMDEtMi03LjQ2NSIgLz4gIDxwYXRoIGQ9Ik02LjAwNCA1LjEyNWE0IDQgMCAwMC0yLjUyNiA1Ljc3IiAvPjwvZz48L3N2Zz4K">
 <title>Jak uczy się model językowy</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+/* Fonts are served from this repo (fonts/), not from Google, so visitors' addresses never reach a third party.
+   Variable woff2 files from Google Fonts (OFL), latin + latin-ext subsets. */
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 100 900; font-display: swap; src: url(fonts/outfit-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Outfit'; font-style: normal; font-weight: 100 900; font-display: swap; src: url(fonts/outfit-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 100 700; font-display: swap; src: url(fonts/ibm-plex-sans-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 100 700; font-display: swap; src: url(fonts/ibm-plex-sans-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'Roboto Mono'; font-style: normal; font-weight: 100 700; font-display: swap; src: url(fonts/roboto-mono-latin-ext.woff2) format('woff2'); unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'Roboto Mono'; font-style: normal; font-weight: 100 700; font-display: swap; src: url(fonts/roboto-mono-latin.woff2) format('woff2'); unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+</style>
 
 
 <style>
@@ -254,6 +261,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .progress-track > span { display: block; height: 100%; background: var(--ink); border-radius: var(--r-pill); }
 .seed-control { display: flex; align-items: center; gap: 8px; }
 .seed-control input { width: 84px; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+.seed-error { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; margin: 0; }
 .small-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink); }
 
 .train-bar { position: sticky; top: var(--header-h); z-index: 40; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px var(--gutter); background: var(--ink); color: var(--paper); }
@@ -271,7 +279,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 [data-view-panel] > .sec:nth-of-type(even) { background: var(--paper-2); }
 .sec > .wrap { padding: 0 var(--gutter); display: grid; gap: 22px; }
 .sec-head { display: flex; align-items: center; gap: 14px; }
-.sec-head h2 { margin: 0; }
+.sec-head h2, .sec-head h1.sec-h1 { margin: 0; font-size: var(--h2); line-height: 1.12; letter-spacing: -0.015em; }
 .sec-head::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
 .view-in { animation: view-fade .2s ease-out; }
 @keyframes view-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -449,6 +457,9 @@ td:first-child { color: var(--ink); font-weight: 600; }
 dialog.help { border: 1px solid var(--line-2); border-radius: var(--r-lg); padding: 22px 26px; max-width: min(520px, calc(100vw - 32px)); color: var(--ink); background: var(--surface); }
 dialog.help::backdrop { background: color-mix(in srgb, var(--ink) 45%, transparent); }
 dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
+.help-toggle { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-weight: 500; }
+.help-toggle input { width: 18px; height: 18px; accent-color: var(--ink); }
+.help-toggle + .edu-small { margin: 6px 0 0; }
 .app-footer { padding: 20px var(--gutter) 32px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; color: var(--ink-2); font-size: var(--body-sm); }
 .app-footer p { margin: 0; }
 .probe { padding: 20px var(--gutter); background: var(--paper-3); }
@@ -507,6 +518,8 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .notice p { margin: 0; flex: 1 1 20rem; font-weight: 500; }
 .btn-ink { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; background: var(--ink); color: var(--paper); border: none; border-radius: var(--r-pill); font-family: var(--font-display); font-weight: 600; text-decoration: none; transition: background-color .12s; }
 .btn-ink:hover:not(:disabled) { background: var(--ink-2); }
+/* On the yellow notice a half-transparent ink button turned grey; keep it solid and just mute it. */
+.notice .btn-ink:disabled { opacity: 1; background: var(--ink-2); color: var(--paper); }
 #views a.btn-ink { color: var(--paper); }
 .chain .link.on { background: var(--yellow); color: var(--on-primary); border-color: var(--yellow); }
 .data-sample { display: grid; gap: 8px; margin-top: 10px; min-width: 0; }
@@ -561,9 +574,9 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
     <div class="stepper-progress"><span class="small-label" id="visited-label"></span><span class="small-label" id="visited-count"></span>
       <div class="progress-track" id="visited-track" role="progressbar" aria-labelledby="visited-label" aria-valuemin="0" aria-valuemax="12" aria-valuenow="1"><span id="visited-fill"></span></div></div>
     <div class="seed-control"><label class="small-label" id="seed-label" for="seed-input"></label><input id="seed-input" type="number" min="1" max="9999" step="1" aria-describedby="seed-hint"></div>
+    <p class="err seed-error" id="seed-error" role="alert"></p>
   </div>
   <div class="visually-hidden" id="seed-hint"></div>
-  <p class="err" id="seed-error" role="alert"></p>
   <div class="train-bar" id="train-bar" hidden>
     <span class="train-label" id="train-bar-label"></span>
     <div class="train-track" id="train-bar-track" role="progressbar" aria-labelledby="train-bar-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="train-bar-fill"></span></div>
@@ -580,7 +593,10 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 </div>
 <div class="visually-hidden" id="live" aria-live="polite" role="status"></div>
 <div class="visually-hidden" id="live-view" aria-live="polite"></div>
-<dialog class="help" id="help" aria-labelledby="help-title"><h2 id="help-title"></h2><ul class="plain" id="help-list"></ul><div class="controls" style="margin-top:14px"><button type="button" class="btn-ghost" id="help-close" data-action="help-close"></button></div></dialog>
+<dialog class="help" id="help" aria-labelledby="help-title"><h2 id="help-title"></h2><ul class="plain" id="help-list"></ul>
+  <label class="help-toggle"><input type="checkbox" id="shortcuts-toggle" checked> <span id="shortcuts-toggle-label"></span></label>
+  <p class="edu-small" id="shortcuts-toggle-note"></p>
+  <div class="controls" style="margin-top:14px"><button type="button" class="btn-ghost" id="help-close" data-action="help-close"></button></div></dialog>
 <script>
 // ─── Constants ───
 const DEFAULT_SEED = 1;
@@ -594,6 +610,8 @@ const METRIC_SAMPLES_PER_PROMPT = 12;
 const MAX_TEMPERATURE = 2;
 const MAX_PROMPT_CHARS = 500;
 const SLICE_MS = 12;
+const PROGRESS_DB = 'tinyllm';
+const PROGRESS_KEY = 'progress-v1';
 const PLAUSIBLE_SHARE = 0.8;
 const OWN_PAIRS_MIN = 8;
 const GRAPHEME_SEGMENTER = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
@@ -621,7 +639,7 @@ const GEO = [
   { nom: 'Niemcy', gen: 'Niemiec', cap: 'Berlin', lies: 'leżą', river: 'nad Szprewą', sft: true },
   { nom: 'Czechy', gen: 'Czech', cap: 'Praga', lies: 'leżą', river: 'nad Wełtawą', sft: true },
   { nom: 'Austria', gen: 'Austrii', cap: 'Wiedeń', lies: 'leży', river: 'nad Dunajem', sft: true },
-  { nom: 'Grecja', gen: 'Grecji', cap: 'Ateny', lies: 'leży', river: '', sft: true },
+  { nom: 'Grecja', gen: 'Grecji', cap: 'Ateny', verb: 'są', lies: 'leży', river: '', sft: true },
   { nom: 'Portugalia', gen: 'Portugalii', cap: 'Lizbona', lies: 'leży', river: 'nad Tagiem', sft: true },
   { nom: 'Norwegia', gen: 'Norwegii', cap: 'Oslo', lies: 'leży', river: '', sft: false },
 ];
@@ -681,6 +699,9 @@ const NARRATIVE_LINES = [
 const SHEET_TITLES = ['Sprawdzian z geografii .', 'Zadania na lekcję .', 'Pytania powtórkowe .', 'Kartkówka z przyrody .'];
 const SHEET_EXTRA_LINES = ['Gdzie mieszka lis ?', 'Co daje krowa ?', 'Jakiego koloru jest śnieg ?', 'Gdzie rośnie ziemniak ?', 'Kto pilnuje domu ?', 'Co je koń ?'];
 
+// Experiments that depend on a stage's weights, so resetting that stage discards them.
+const EXPERIMENTS_FROM = { pretrain: ['corpus', 'demos', 'labeller'], sft: ['demos', 'labeller'], rl: ['labeller'] };
+
 const LABELLER_RANK = {
   rzeczowy: { pozadana: 3, zdawkowa: 2, bledna: 1, inne: 1, kontynuacja: 1, zbywajaca: 0 },
   zwiezly: { zdawkowa: 3, pozadana: 2, bledna: 1, inne: 1, kontynuacja: 1, zbywajaca: 0 },
@@ -695,6 +716,7 @@ const SOURCE_LINKS = {
   ouyang: 'https://arxiv.org/abs/2203.02155',
   bai: 'https://arxiv.org/abs/2212.08073',
   deepseek: 'https://arxiv.org/abs/2501.12948',
+  bengio: 'https://www.jmlr.org/papers/v3/bengio03a.html',
 };
 
 
@@ -704,7 +726,7 @@ const SOURCE_LINKS = {
 const SMOL_SFT_URL = 'https://huggingface.co/andrzej/smollm2-135M-SFT-Only-ONNX';
 const SMOL_LIB_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.min.js';
 const SMOL_LIB_SHA384 = 'xFDNfwR3J/vPYzGjMr1VSM8LHIcA+ii2Ha4x+6WAuISKpT9I0dxgF/mVQW+I0kSd';
-// Chosen by testing Instruct in headless Chrome (see spec section 10): q4 was slow and missed the answer,
+// Chosen by testing Instruct in headless Chrome: q4 was slow and missed the answer,
 // int8 is slow on WebGPU, and fp16 went wrong on an Intel iGPU.
 const SMOL_DTYPE = { webgpu: 'fp32', wasm: 'int8' };
 const SMOL_GENERATION = { max_new_tokens: 60, do_sample: false, repetition_penalty: 1.2 };
@@ -712,7 +734,7 @@ const SMOL_CANCEL_TIMEOUT_MS = 5000;
 const SMOL_DEFAULT_PROMPT = 'What is the capital of France?';
 const SMOL_PROMPTS = ['What is the capital of France?', 'List three fruits.', 'Why is the sky blue?'];
 const SMOL_ORDER = ['base', 'sft', 'instruct'];
-// Mirrors on the andrzej account: base and Instruct copied unchanged, SFT converted locally (spec section 10).
+// Mirrors on the andrzej account: base and Instruct copied unchanged, SFT converted to ONNX locally (see README).
 // bytes: ONNX weights per dtype; extra: config, generation config and tokenizer files.
 const SMOL_MODELS = {
   base: { repo: 'andrzej/SmolLM2-135M-ONNX', chat: false, page: 'https://huggingface.co/andrzej/SmolLM2-135M-ONNX', original: 'https://huggingface.co/onnx-community/SmolLM2-135M-ONNX', bytes: { int8: 135658354, fp32: 540356186 }, extra: 2058364 },
@@ -881,7 +903,7 @@ const T = {
   tabNote: 'Model żyje tylko w tej karcie: po przeładowaniu strony trening zaczyna się od zera.',
   visited: 'Odwiedzone widoki',
   statusLocked: 'zablokowany',
-  statusReady: 'gotowy',
+  statusReady: 'do treningu',
   statusTraining: 'trening',
   statusPaused: 'pauza',
   statusDone: 'wytrenowany',
@@ -895,6 +917,7 @@ const T = {
   seedLabel: 'Ziarno losowości',
   seedHint: 'Inne ziarno to inny start wag. Zmiana kasuje trening.',
   seedBad: 'Ziarno musi być liczbą od 1 do 9999.',
+  progressRestored: 'Przywrócono wytrenowane wagi z poprzedniej wizyty (ziarno {seed}).',
   seedChanged: 'Nowe ziarno: {seed}. Trening zaczyna się od zera.',
 
   btnTrain: 'Trenuj',
@@ -1069,11 +1092,11 @@ const T = {
   rlChain3: 'Model pisze odpowiedzi na prompty bez etykiet.',
   rlChain4: 'Nagroda wzmacnia to, co oceniła wysoko.',
   rlFold: 'REINFORCE, PPO i kara KL',
-  rlFoldText: 'InstructGPT użył algorytmu PPO i neuronowego modelu nagrody. Tu działa prostszy krewny: REINFORCE z ruchomą linią bazową i nagroda liczona z worka tokenów i długości. Kara KL za każdy token (współczynnik {kl}) trzyma model blisko wag po SFT, a nagroda jest wystandaryzowana i przycięta, żeby model nie przesadził w pogoni za nią. Wagi modelu nagrody maleją po każdej epoce (mnożnik {decay}), więc rzadkie tokeny, na przykład nazwa jednego kraju, tracą znaczenie. Symulowany oznaczający układa 200 par według ustalonej kolejności klas i zastępuje ludzi. Model nagrody widzi tylko wybory.',
+  rlFoldText: 'InstructGPT użył algorytmu PPO i neuronowego modelu nagrody. Tu działa prostszy krewny: REINFORCE z ruchomą linią bazową i nagroda liczona z worka tokenów i długości. Kara KL za każdy token (współczynnik {kl}) trzyma model blisko wag po SFT, a nagroda jest wystandaryzowana i przycięta, żeby model nie przesadził w pogoni za nią. Wagi modelu nagrody maleją po każdej epoce (mnożnik {decay}), więc rzadkie tokeny, na przykład nazwa jednego kraju, tracą znaczenie. Symulowany oceniający układa 200 par według ustalonej kolejności klas i zastępuje ludzi. Model nagrody widzi tylko wybory.',
   rlRewardRow: 'Model nagrody',
   rlRewardTile: 'Worek tokenów',
   rlRewardText: 'Nagroda zależy od użytych tokenów i długości odpowiedzi, nie od ich sensu.',
-  rlSource: 'Kto oznacza',
+  rlSource: 'Kto ocenia',
   srcRzeczowy: 'rzeczowy',
   srcZwiezly: 'zwięzły',
   srcOdwrocony: 'odwrócony',
@@ -1099,12 +1122,12 @@ const T = {
   rewardLength: 'Waga długości: {w}',
   rlDataTitle: 'Jakie dane',
   rlDataText: 'Rankingi odpowiedzi od ludzi uczą model nagrody (33 tys. promptów). PPO dostaje same prompty, bez etykiet (31 tys.).',
-  rlExpTitle: 'Złe dane: odwrócony oznaczający',
+  rlExpTitle: 'Złe dane: odwrócony oceniający',
   rlExpText: 'Nagroda za zbywanie. RL goni to, co nagradzają preferencje, nie to, co dobre.',
   rlExpBtn: 'Uruchom eksperyment',
   rlExpResult: 'Odpowiedzi zbywające: odwrócony {bad}%, główny RL ({labeller}) {main}%.',
   rlExpSample: 'Próbka: {sample}',
-  rlMainLabeller: 'Główny RL trenował oznaczający: {labeller}.',
+  rlMainLabeller: 'Główny RL trenował oceniający: {labeller}.',
   metricPreferred: 'Odpowiedzi pożądane po SFT: {a}%, po RL: {b}%.',
 
   cmpHead: 'Ten sam prompt po każdym etapie',
@@ -1115,7 +1138,7 @@ const T = {
   cmpFreeLabel: 'Twój prompt',
   cmpRun: 'Porównaj',
   cmpPipeline: 'Uruchom cały potok',
-  cmpPipelineHint: 'Trenuje po kolei etapy, których jeszcze nie ma, z oznaczającym „rzeczowy”.',
+  cmpPipelineHint: 'Trenuje po kolei etapy, których jeszcze nie ma. RL używa Twoich ocen, jeśli jest ich dość, inaczej oceniającego „rzeczowy”.',
   cmpPipelineBusy: 'Trening trwa. Postęp widać na pasku u góry.',
   cmpPipelineDone: 'Wszystkie etapy są wytrenowane. Reset w widoku etapu pozwala zacząć od nowa.',
   cmpMetricsTitle: 'Metryki na 12 promptach',
@@ -1171,7 +1194,7 @@ const T = {
   daneExpDone: 'wynik gotowy',
   daneExpCorpus: 'Pomieszany korpus',
   daneExpDemos: 'Pomylone przykłady',
-  daneExpLabeller: 'Odwrócony oznaczający',
+  daneExpLabeller: 'Odwrócony oceniający',
   sourceLabel: 'Źródło',
 
   prawdaHead: 'Co jest prawdziwe, a co uproszczone',
@@ -1209,7 +1232,8 @@ const T = {
   srcOuyang: 'Ouyang i in. 2022, „Training language models to follow instructions with human feedback”, arXiv:2203.02155',
   srcBai: 'Bai i in. 2022, „Constitutional AI: Harmlessness from AI Feedback”, arXiv:2212.08073',
   srcDeepseek: 'DeepSeek-AI 2025, „DeepSeek-R1”, arXiv:2501.12948',
-  srcBengio: 'Architektura modelu: prosta sieć z oknem kontekstu i wektorami słów.',
+  srcBengio: 'Bengio i in. 2003, „A Neural Probabilistic Language Model”, JMLR 3, s. 1137-1155',
+  srcBengioNote: 'Architektura modelu pochodzi z pracy Bengio i in.: prosta sieć z oknem kontekstu i wektorami słów.',
 
   quizHead: 'Sprawdź się',
   quizHeroOver: 'Podsumowanie',
@@ -1264,11 +1288,11 @@ const T = {
   q7b: 'Wzorcowe odpowiedzi od ludzi',
   q7c: 'Żadnych ludzkich etykiet',
   q7e: 'PPO dostaje same prompty, a ocenę daje model nagrody.',
-  q8: 'Co się stanie, gdy oznaczający nagrodzą zbywanie?',
+  q8: 'Co się stanie, gdy oceniający nagrodzą zbywanie?',
   q8a: 'Nic, RL wie, co jest dobre',
   q8b: 'Model nauczy się zbywać',
   q8c: 'Trening się zatrzyma',
-  q8e: 'RL goni nagrodę, także złą. Sprawdzisz to w eksperymencie z odwróconym oznaczającym.',
+  q8e: 'RL goni nagrodę, także złą. Sprawdzisz to w eksperymencie z odwróconym oceniającym.',
 
   helpTitle: 'Skróty klawiszowe',
   helpViews: 'Klawisze 1-8: główne widoki; 9, 0 i -: strony z krokiem treningu; =: panel SmolLM2',
@@ -1277,6 +1301,8 @@ const T = {
   helpTrain: 'T: start lub pauza treningu w bieżącym etapie',
   helpNext: 'N: następny token w widoku Model',
   helpHelp: '?: ta pomoc, Esc: zamknięcie',
+  helpShortcutsToggle: 'Skróty jednoklawiszowe włączone',
+  helpShortcutsNote: 'Po wyłączeniu klawisze liter i cyfr nic nie robią poza polami tekstowymi. Działa dalej tylko ? (ta pomoc). Ustawienie zostaje w tej przeglądarce.',
   helpOpen: 'Skróty (?)',
   helpClose: 'Zamknij',
 
@@ -1288,14 +1314,14 @@ const T = {
   noticeTrain: 'Trenuj teraz',
 
   sampleTitle: 'Próbka danych',
-  sampleCount: 'Pokazuję {shown} z {total}: {what}.',
+  sampleCount: 'Pokazuję {shown} z {total} {what}.',
   sampleWhatCorpus: 'linii korpusu',
   sampleWhatDemos: 'przykładów SFT',
   sampleWhatPairsRun: 'par z ostatniego treningu RL',
-  sampleWhatPairsLive: 'par: tych {total} zbierze trening RL, tu losowane teraz z modelu po SFT',
-  samplePrompts: 'Pokazuję {shown} z {total}: promptów bez ludzkich etykiet.',
+  sampleWhatPairsLive: 'par, które zbierze trening RL (tu losowane teraz z modelu po SFT)',
+  samplePrompts: 'Pokazuję {shown} z {total} promptów bez ludzkich etykiet.',
   samplePairsNone: 'Pary odpowiedzi z etykietami pojawią się po SFT, bo porównuje się odpowiedzi tego modelu.',
-  sampleLabeller: 'Etykiety: symulowany oznaczający „{name}”.',
+  sampleLabeller: 'Etykiety: symulowany oceniający „{name}”.',
   sampleWin: 'wygrana',
   sampleLose: 'przegrana',
   sampleReroll: 'Losuj inne',
@@ -1380,8 +1406,8 @@ const T = {
   rlFirstBefore: 'Pierwszy token przed',
   rlFirstAfter: 'Pierwszy token po',
   rlBetter: 'lepsza',
-  rlKindMain: 'Model nagrody z głównego treningu RL, oznaczający: {name}.',
-  rlKindStandin: 'Zastępczy model nagrody: 60 par, oznaczający „rzeczowy”. Główny powstanie w treningu RL.',
+  rlKindMain: 'Model nagrody z głównego treningu RL, oceniający: {name}.',
+  rlKindStandin: 'Zastępczy model nagrody: 60 par, oceniający „rzeczowy”. Główny powstanie w treningu RL.',
   diffTitle: 'Co się różni od pretrainingu',
   diffColWhat: 'Cecha',
   diffRowData: 'Dane',
@@ -1430,6 +1456,8 @@ const T = {
   smolDownload: 'Pobierz: {size}',
   smolRetry: 'Spróbuj ponownie: {size}',
   smolCancel: 'Anuluj',
+  smolUnload: 'Zwolnij pamięć',
+  smolLiveUnload: 'SmolLM2 {name}: model usunięty z pamięci. Pobrane pliki zostają w pamięci podręcznej przeglądarki.',
   smolStop: 'Zatrzymaj odpowiedź',
   smolInterrupted: 'Odpowiedź przerwano. Model zostaje wczytany, więc możesz od razu generować dalej.',
   smolStarting: 'Start…',
@@ -1549,6 +1577,8 @@ const FIXTURES = [
 const App = {
   view: 'model',
   visited: new Set(['model']),
+  shortcuts: true, // single-key shortcuts can be switched off (WCAG 2.1.4); persisted per browser
+  persist: true, // trained weights survive a reload; false under ?probe=
   seed: DEFAULT_SEED,
   seedError: '',
   data: null,
@@ -1627,7 +1657,7 @@ function buildCorpusDocs() {
   const docs = [];
   const geoLines = [];
   GEO.forEach((g) => {
-    geoLines.push(`Stolicą ${g.gen} jest ${g.cap} .`, `${g.cap} to stolica ${g.gen} .`, `${g.nom} ${g.lies} w Europie .`);
+    geoLines.push(`Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`, `${g.cap} to stolica ${g.gen} .`, `${g.nom} ${g.lies} w Europie .`);
     if (g.river) geoLines.push(`${g.cap} leży ${g.river} .`);
   });
   for (let i = 0; i < 6; i++) {
@@ -1659,20 +1689,25 @@ function buildCorpusDocs() {
   return shuffled(docs, rng);
 }
 
-function buildDemos() {
+// "Stolicą Grecji są Ateny": a plural capital takes a plural verb.
+function capVerb(g) { return g.verb || 'jest'; }
+
+// `forSft` true builds the training demonstrations; false builds the held-out entries (sft: false),
+// which are never trained on and serve only as the SFT validation set.
+function buildDemos(forSft = true) {
   const demos = [];
   const add = (prompt, intent, style, response, heldOut) => demos.push({ prompt, intent, style, response, heldOut: !!heldOut });
   let dismissiveAt = 0;
   const dismissive = () => DISMISSIVE_PHRASES[dismissiveAt++ % DISMISSIVE_PHRASES.length];
-  GEO.filter((g) => g.sft).forEach((g) => {
+  GEO.filter((g) => g.sft === forSft).forEach((g) => {
     const prompt = `Jaka jest stolica ${g.gen} ?`;
-    add(prompt, 'fact', 'pozadana', `Stolicą ${g.gen} jest ${g.cap} .`);
-    add(prompt, 'fact', 'pozadana', `Stolicą ${g.gen} jest ${g.cap} .`);
+    add(prompt, 'fact', 'pozadana', `Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`);
+    add(prompt, 'fact', 'pozadana', `Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`);
     add(prompt, 'fact', 'zdawkowa', `${g.cap} .`);
     add(prompt, 'fact', 'zdawkowa', `Chyba ${g.cap} .`);
     add(prompt, 'fact', 'zbywajaca', dismissive());
   });
-  LIST_CATEGORIES.filter((c) => c.sft).forEach((c) => {
+  LIST_CATEGORIES.filter((c) => c.sft === forSft).forEach((c) => {
     const prompt = `Wymień trzy ${c.key} .`;
     const it = c.items;
     add(prompt, 'list', 'pozadana', `Trzy ${c.key} to : ${it[0]} , ${it[1]} i ${it[2]} .`);
@@ -1681,7 +1716,7 @@ function buildDemos() {
     add(prompt, 'list', 'zdawkowa', `${it[2]} , ${it[3]} i ${it[4]} .`);
     add(prompt, 'list', 'zbywajaca', dismissive());
   });
-  SENTENCE_SUBJECTS.filter((s) => s.sft).forEach((s) => {
+  SENTENCE_SUBJECTS.filter((s) => s.sft === forSft).forEach((s) => {
     const prompt = `Napisz zdanie o ${s.loc} .`;
     add(prompt, 'sentence', 'pozadana', s.full[0]);
     add(prompt, 'sentence', 'pozadana', s.full[1]);
@@ -1718,24 +1753,31 @@ function tokenize(text, vocab) {
 
 function buildData() {
   const docs = buildCorpusDocs();
-  const demos = buildDemos();
-  const vocab = buildVocab(docs, demos);
+  const demos = buildDemos(true);
+  const valDemos = buildDemos(false);
+  const vocab = buildVocab(docs, demos.concat(valDemos));
   const toIds = (line) => splitTokens(line).map((tok) => vocab.index.get(tok));
+  // The corpus repeats every line several times, so the validation split is by unique line text:
+  // all copies of a held-out line land in validation, none in training.
+  const uniqueLines = [];
+  docs.forEach((doc) => doc.lines.forEach((line) => { if (!uniqueLines.includes(line)) uniqueLines.push(line); }));
+  const valLines = new Set(uniqueLines.filter((line, i) => i % 10 === 9));
   const corpusIds = [];
   const corpusIsVal = [];
-  let lineCounter = 0;
   docs.forEach((doc) => {
     doc.lines.forEach((line) => {
-      const isVal = lineCounter++ % 10 === 9;
+      const isVal = valLines.has(line);
       toIds(line).concat([vocab.nl]).forEach((id) => { corpusIds.push(id); corpusIsVal.push(isVal); });
     });
     corpusIds.push(vocab.nl); corpusIsVal.push(false);
   });
-  const demoSeqs = demos.map((d) => ({
+  const toSeq = (d) => ({
     context: toIds(d.prompt).concat([vocab.nl]),
     response: toIds(d.response).concat([vocab.end]),
     prompt: d.prompt,
-  }));
+  });
+  const demoSeqs = demos.map(toSeq);
+  const valDemoSeqs = valDemos.map(toSeq);
   const rawBigrams = new Set();
   docs.forEach((d) => d.lines.forEach((l) => { const t = splitTokens(l); for (let i = 1; i < t.length; i++) rawBigrams.add(t[i - 1] + ' ' + t[i]); }));
   const allBigrams = new Set(rawBigrams);
@@ -1744,7 +1786,13 @@ function buildData() {
   docs.forEach((d) => d.lines.forEach((l) => splitTokens(l).forEach((tok) => { rawTokens.add(tok); allTokens.add(tok); })));
   demos.forEach((d) => splitTokens(d.response).forEach((tok) => allTokens.add(tok)));
   const rlPrompts = Array.from(new Set(demos.map((d) => d.prompt)));
-  return { docs, demos, vocab, corpusIds, corpusIsVal, demoSeqs, rawBigrams, allBigrams, rawTokens, allTokens, rlPrompts,
+  // Words that follow a sentence subject at the start of a line (verbs, in practice); the sentence classifier needs one.
+  const subjects = new Set(SENTENCE_SUBJECTS.map((s) => s.subject.toLowerCase()));
+  const subjectFollowers = new Set();
+  const noteFollower = (line) => { const t = splitTokens(line); if (t.length > 1 && subjects.has(t[0].toLowerCase()) && /\p{L}/u.test(t[1])) subjectFollowers.add(t[1].toLowerCase()); };
+  docs.forEach((d) => d.lines.forEach(noteFollower));
+  demos.concat(valDemos).forEach((d) => noteFollower(d.response));
+  return { docs, demos, valDemos, vocab, corpusIds, corpusIsVal, demoSeqs, valDemoSeqs, rawBigrams, allBigrams, rawTokens, allTokens, rlPrompts, subjectFollowers,
     rlPromptIds: rlPrompts.map((p) => toIds(p).concat([vocab.nl])), rlPromptExpect: rlPrompts.map(expectationForText),
     evalPrompts: EVAL_PROMPTS.map((p) => ({ ...p, ids: tokenize(p.text, vocab).ids.concat([vocab.nl]) })) };
 }
@@ -1792,10 +1840,10 @@ function listItemsValid(tokens, items) {
   return new Set(picked).size === 3 && picked.every((tok) => allowed.includes(tok));
 }
 
-function meetsExpectation(segment, expect) {
+function meetsExpectation(segment, expect, data) {
   if (expect.intent === 'fact') {
     const g = GEO.find((item) => item.gen === expect.geo);
-    const full = `stolicą ${g.gen} jest ${g.cap} .`.toLowerCase();
+    const full = `stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`.toLowerCase();
     if (segment.join(' ').toLowerCase() === full) return 'complete';
     if (segment.length <= 4 && segment.some((tok) => eqi(tok, g.cap))) return 'curt';
     return null;
@@ -1806,7 +1854,12 @@ function meetsExpectation(segment, expect) {
     if (listItemsValid(segment, c.items)) return 'curt';
     return null;
   }
-  if (segment.length >= 2 && eqi(segment[0], expect.subject) && segment[segment.length - 1] === '.') {
+  // A sentence is the subject, then a word that follows a subject somewhere in the data (a verb, in practice),
+  // then only words, then one full stop. "Kot , pies i koń ." and "Kot ." are not sentences.
+  if (segment.length >= 3 && eqi(segment[0], expect.subject) && segment[segment.length - 1] === '.') {
+    const body = segment.slice(0, -1);
+    if (body.some((tok) => /^[^\p{L}\p{N}]$/u.test(tok))) return null;
+    if (data && !data.subjectFollowers.has(segment[1].toLowerCase())) return null;
     if (segment.length >= 4) return 'complete';
     return 'curt';
   }
@@ -1819,7 +1872,7 @@ function classifyOutput(expect, tokens, data) {
   const text = segment.join(' ');
   if (DISMISSIVE_PHRASES.some((phrase) => eqi(phrase, text))) return 'zbywajaca';
   if (expect) {
-    const met = meetsExpectation(segment, expect);
+    const met = meetsExpectation(segment, expect, data);
     if (met === 'complete') return 'pozadana';
     if (met === 'curt') return 'zdawkowa';
   }
@@ -1905,10 +1958,22 @@ function softmaxInto(logits, probs, temperature) {
   for (let i = 0; i < V; i++) probs[i] /= sum;
 }
 
+// Never returns a token with zero probability: rounding and rng() === 0 are both covered.
 function sampleFrom(probs, rng) {
   let r = rng();
-  for (let i = 0; i < probs.length; i++) { r -= probs[i]; if (r <= 0) return i; }
-  return probs.length - 1;
+  let last = -1;
+  for (let i = 0; i < probs.length; i++) {
+    if (probs[i] <= 0) continue;
+    last = i;
+    r -= probs[i];
+    if (r < 0) return i;
+  }
+  return last < 0 ? 0 : last;
+}
+
+// Scans every weight; cheap next to a training step, run every few steps.
+function assertFinite(p) {
+  for (let i = 0; i < p.length; i++) if (!Number.isFinite(p[i])) throw new Error('nonfinite');
 }
 
 // One example's gradient is added to `grad`, scaled by `weight`. Returns the unweighted loss.
@@ -2001,12 +2066,12 @@ function exampleSets(data) {
   return { corpusTrain, corpusVal };
 }
 
-function makeSftExamples(seqs) {
+// Training examples come from `seqs`; validation examples from `valSeqs`, demonstrations for prompts
+// that SFT never trains on (sft: false entries), so the validation loss measures generalisation.
+function makeSftExamples(seqs, valSeqs = []) {
   const train = []; const val = [];
-  seqs.forEach((seq, s) => {
-    const list = s % 7 === 3 ? val : train;
-    for (let t = 0; t < seq.response.length; t++) list.push({ s, t });
-  });
+  seqs.forEach((seq, s) => { for (let t = 0; t < seq.response.length; t++) train.push({ s, t, seqs }); });
+  valSeqs.forEach((seq, s) => { for (let t = 0; t < seq.response.length; t++) val.push({ s, t, seqs: valSeqs }); });
   return { train, val };
 }
 
@@ -2095,7 +2160,7 @@ function* trainPretrain(ctx, onReport) {
     batchLoss /= cfg.batch;
     if (!Number.isFinite(batchLoss)) throw new Error('nonfinite');
     adamStep(p, grad, adam, ctx.lrOverride || lrAt(cfg, step - 1, cfg.steps), cfg.clip);
-    for (let i = 0; i < 8; i++) if (!Number.isFinite(p[i])) throw new Error('nonfinite');
+    if (step % 25 === 0 || step === cfg.steps) assertFinite(p);
     running = 0.97 * running + 0.03 * batchLoss;
     ctx.loss = running; ctx.step = step;
     if (step % 100 === 0 || step === cfg.steps) { ctx.valLoss = yield* evalSet(sets.corpusVal, 300); if (onReport) onReport(step); }
@@ -2109,11 +2174,11 @@ function* trainSft(ctx, onReport) {
   const grad = new Float64Array(shape.total);
   const adam = makeAdam(shape.total);
   const seqs = ctx.seqs || data.demoSeqs;
-  const examples = makeSftExamples(seqs);
+  const examples = makeSftExamples(seqs, data.valDemoSeqs);
   const nl = data.vocab.nl;
   const buf = [];
   const setEx = (ex) => {
-    const seq = seqs[ex.s];
+    const seq = ex.seqs[ex.s];
     buf.length = 0;
     for (let i = 0; i < seq.context.length; i++) buf.push(seq.context[i]);
     for (let i = 0; i < ex.t; i++) buf.push(seq.response[i]);
@@ -2139,6 +2204,7 @@ function* trainSft(ctx, onReport) {
     batchLoss /= cfg.batch;
     if (!Number.isFinite(batchLoss)) throw new Error('nonfinite');
     adamStep(p, grad, adam, lrAt(cfg, step - 1, cfg.steps), cfg.clip);
+    if (step % 25 === 0 || step === cfg.steps) assertFinite(p);
     running = 0.95 * running + 0.05 * batchLoss;
     ctx.loss = running; ctx.step = step;
     if (step % 50 === 0 || step === cfg.steps) { ctx.valLoss = yield* evalSet(examples.val); if (onReport) onReport(step); }
@@ -2355,6 +2421,77 @@ function prettyTokens(tokens) {
 }
 function safeStorageGet(key) { try { return window.localStorage.getItem(key); } catch (err) { return null; } }
 function safeStorageSet(key, value) { try { window.localStorage.setItem(key, value); return true; } catch (err) { return false; } }
+
+// ─── Helpers: progress persistence ───
+// Trained weights and the RL state survive a reload (IndexedDB holds typed arrays and Maps as they are).
+// Probe runs never persist, and a record is only restored for the seed it was trained with.
+function progressDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') { reject(new Error('no indexedDB')); return; }
+    const req = indexedDB.open(PROGRESS_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('progress');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function progressTx(mode, run) {
+  return progressDb().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction('progress', mode);
+    const req = run(tx.objectStore('progress'));
+    tx.oncomplete = () => { db.close(); resolve(req && req.result); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  }));
+}
+function progressRecord() {
+  const stages = {};
+  STAGE_ORDER.forEach((key) => { const stage = App.stages[key]; if (stage.status === 'done') stages[key] = { ...stage }; });
+  const { source, own, equalCount, ownReward, reward, simPairs, mainLabeller, lastPairs } = App.rl;
+  const experiments = {};
+  Object.keys(App.experiments).forEach((key) => { if (App.experiments[key] && App.experiments[key].status === 'done') experiments[key] = App.experiments[key]; });
+  return { seed: App.seed, savedAt: Date.now(), stages, rl: { source, own, equalCount, ownReward, reward, simPairs, mainLabeller, lastPairs }, experiments };
+}
+function saveProgress() {
+  if (!App.persist) return Promise.resolve();
+  const record = progressRecord();
+  const write = Object.keys(record.stages).length
+    ? progressTx('readwrite', (store) => store.put(record, PROGRESS_KEY))
+    : progressTx('readwrite', (store) => store.delete(PROGRESS_KEY));
+  return write.catch(() => { /* Storage is a convenience: a failed save only loses the reload. */ });
+}
+function clearProgress() {
+  if (!App.persist) return Promise.resolve();
+  return progressTx('readwrite', (store) => store.delete(PROGRESS_KEY)).catch(() => {});
+}
+function loadProgress() {
+  if (!App.persist) return Promise.resolve(null);
+  return progressTx('readonly', (store) => store.get(PROGRESS_KEY)).catch(() => null);
+}
+function restoreProgress(record) {
+  if (!record || record.seed !== App.seed || isBusy()) return false;
+  let restored = 0;
+  STAGE_ORDER.forEach((key, i) => {
+    const saved = record.stages && record.stages[key];
+    if (!saved || saved.status !== 'done' || !saved.params) return;
+    if (i > 0 && App.stages[STAGE_ORDER[i - 1]].status !== 'done') return;
+    App.stages[key] = { ...newStage(key), ...saved, params: new Float64Array(saved.params) };
+    restored++;
+    const next = STAGE_ORDER[i + 1];
+    if (next) {
+      const stage = App.stages[next];
+      stage.status = 'ready'; stage.note = ''; stage.hash = saved.hash; stage.stepsTotal = cfgFor(next).steps;
+    }
+  });
+  if (!restored) return false;
+  Object.assign(App.rl, record.rl || {});
+  Object.keys(record.experiments || {}).forEach((key) => { if (record.experiments[key]) App.experiments[key] = record.experiments[key]; });
+  if (App.stages.sft.status === 'done' && App.stages.rl.status !== 'done') newOwnPair();
+  ensureCheckpoint();
+  refreshBench();
+  refreshPairSample();
+  renderAll();
+  announce(t('progressRestored', { seed: App.seed }));
+  return true;
+}
 function announce(text) { App.live.count += 1; setText(refs.live, text); }
 function stageIndex(key) { return STAGE_ORDER.indexOf(key); }
 function stageName(key) { return t(STAGE_NAME_KEYS[key]); }
@@ -2649,6 +2786,7 @@ function onStageDone(key, ctx) {
   refreshBench();
   refreshPairSample();
   announce(t('liveTrainingDone', { name: stageName(key) }));
+  saveProgress();
 }
 
 function togglePause() {
@@ -2676,7 +2814,10 @@ function trainToggle(key) {
 function cancelLoopIfAffected(key) {
   const loop = App.loop;
   if (!loop.gen) return;
-  if (loop.kind === 'experiment') { App.experiments[loop.key] = newExperiment(); clearLoop(); App.pipeline = false; return; }
+  if (loop.kind === 'experiment') {
+    if (!EXPERIMENTS_FROM[key].includes(loop.key)) return;
+    App.experiments[loop.key] = newExperiment(); clearLoop(); App.pipeline = false; return;
+  }
   if (stageIndex(loop.key) >= stageIndex(key)) { clearLoop(); App.pipeline = false; }
 }
 
@@ -2700,20 +2841,21 @@ function resetStage(key) {
     dropped.note = hadWork ? t('resetNote') : '';
     App.stages[STAGE_ORDER[i]] = dropped;
   }
-  const experimentsFrom = { pretrain: ['corpus', 'demos', 'labeller'], sft: ['demos', 'labeller'], rl: ['labeller'] };
-  experimentsFrom[key].forEach((exp) => { App.experiments[exp] = newExperiment(); });
+  EXPERIMENTS_FROM[key].forEach((exp) => { App.experiments[exp] = newExperiment(); });
   if (idx <= 1) { App.rl.own = []; App.rl.equalCount = 0; App.rl.ownPair = null; App.rl.ownReward = null; }
   if (idx <= 2) { App.rl.reward = null; App.rl.simPairs = 0; App.rl.mainLabeller = ''; App.rl.lastPairs = null; }
   ensureCheckpoint();
   refreshBench();
   refreshPairSample();
   renderAll();
+  saveProgress();
 }
 
 function advancePipeline() {
   if (isBusy() && !App.loop.paused) return;
   if (isBusy() && App.loop.paused) { togglePause(); return; }
-  App.rl.source = 'rzeczowy';
+  // Keep the learner's own labels when they have enough of them; otherwise fall back to the simulated labeller.
+  if (!rewardReady()) App.rl.source = 'rzeczowy';
   const next = STAGE_ORDER.find((key) => App.stages[key].status !== 'done');
   if (!next) { App.pipeline = false; renderAll(); return; }
   const stage = App.stages[next];
@@ -2731,10 +2873,16 @@ function startPipeline() {
 function changeSeed(value) {
   const seed = Number(value);
   if (isBusy()) return;
-  if (!Number.isInteger(seed) || seed < 1 || seed > 9999) { App.seedError = t('seedBad'); renderChrome(); return; }
+  if (!Number.isInteger(seed) || seed < 1 || seed > 9999) {
+    App.seedError = t('seedBad');
+    qs('#seed-input').value = App.seed; // the field never keeps -5, 0 or 1e99
+    renderChrome();
+    return;
+  }
   App.seedError = '';
   if (seed === App.seed) { renderChrome(); return; }
   initEngine(seed);
+  clearProgress();
   App.next.checkpoint = 'random';
   App.next.appended = [];
   refreshBench();
@@ -4181,6 +4329,16 @@ function smolCancel(key) {
   smolTerminate(key);
 }
 
+// Drops a loaded model from memory (worker and weights); the browser cache keeps the downloaded files.
+function smolUnload(key) {
+  const column = App.smol.columns[key];
+  if (column.state !== 'ready' || App.smol.queue.includes(key) || App.smol.running === key) return;
+  if (column.worker) column.worker.terminate();
+  Object.assign(column, newSmolColumn(key), { checked: column.checked });
+  announce(t('smolLiveUnload', { name: t(`smolName_${key}`) }));
+  renderSmol();
+}
+
 function smolTerminate(key) {
   const column = App.smol.columns[key];
   if (column.cancelTimer) clearTimeout(column.cancelTimer);
@@ -4450,11 +4608,14 @@ function drawChart(canvas, series, yLabelDigits) {
   const plotH = height - pad.t - pad.b;
   const px = (x) => pad.l + (x / maxX) * plotW;
   const py = (y) => pad.t + (1 - (y - minY) / (maxY - minY)) * plotH;
-  for (let i = 0; i <= 3; i++) {
-    const y = minY + (maxY - minY) * (i / 3);
+  // Polish decimals use a comma; an empty chart draws its grid without numbers rather than repeating "0" and "1".
+  let digits = yLabelDigits === undefined ? 1 : yLabelDigits;
+  const ticks = [0, 1, 2, 3].map((i) => minY + (maxY - minY) * (i / 3));
+  while (digits < 3 && new Set(ticks.map((y) => y.toFixed(digits))).size < ticks.length) digits++;
+  ticks.forEach((y) => {
     ctx.beginPath(); ctx.moveTo(pad.l, py(y)); ctx.lineTo(width - pad.r, py(y)); ctx.stroke();
-    ctx.fillText(y.toFixed(yLabelDigits === undefined ? 1 : yLabelDigits), 4, py(y) + 4);
-  }
+    if (all.length) ctx.fillText(y.toFixed(digits).replace('.', ','), 4, py(y) + 4);
+  });
   ctx.fillText('0', pad.l, height - 6);
   ctx.fillText(String(maxX), width - pad.r - ctx.measureText(String(maxX)).width, height - 6);
   series.forEach((s) => {
@@ -4735,7 +4896,7 @@ function renderNext() {
       track.appendChild(fill);
       const val = document.createElement('span'); val.className = 'bar-val'; val.textContent = `${(probs[id] * 100).toFixed(1).replace('.', ',')}%`;
       btn.append(name, track, val);
-      btn.setAttribute('aria-label', `${vocab.list[id]}: ${(probs[id] * 100).toFixed(1)}%`);
+      btn.setAttribute('aria-label', `${vocab.list[id]}: ${(probs[id] * 100).toFixed(1).replace('.', ',')}%`);
       barsBox.appendChild(btn);
     });
     let entropy = 0;
@@ -5189,10 +5350,23 @@ function renderView() {
     panel.hidden = !active;
     panel.classList.toggle('view-in', active);
   });
+  promoteViewHeading();
   renderChrome();
   updateHeaderHeight();
   centerActiveNav();
   STAGE_ORDER.forEach(drawStageCharts);
+}
+
+// Every view gets exactly one h1: the model view has the app title, the others promote their first section heading.
+function promoteViewHeading() {
+  const panel = qs(`[data-view-panel="${App.view}"]`);
+  if (!panel || qs('h1', panel)) return;
+  const h2 = qs('.sec-head h2', panel);
+  if (!h2) return;
+  const h1 = document.createElement('h1');
+  h1.className = 'sec-h1';
+  h1.textContent = h2.textContent;
+  h2.replaceWith(h1);
 }
 
 // ─── Render: notices, samples, step pages ───
@@ -5823,7 +5997,7 @@ function viewDaneHtml() {
 
 function viewPrawdaHtml() {
   const list = (keys) => `<ul class="plain">${keys.map((key) => `<li>${t(key)}</li>`).join('')}</ul>`;
-  const sources = [['brown', 'srcBrown'], ['ouyang', 'srcOuyang'], ['bai', 'srcBai'], ['deepseek', 'srcDeepseek']]
+  const sources = [['bengio', 'srcBengio'], ['brown', 'srcBrown'], ['ouyang', 'srcOuyang'], ['bai', 'srcBai'], ['deepseek', 'srcDeepseek']]
     .map(([key, label]) => `<li><a href="${SOURCE_LINKS[key]}" target="_blank" rel="noopener">${t(label)}</a></li>`).join('');
   return `<section class="sec"><div class="wrap">
     ${secHead('scale', 'tone-ink', 'prawdaHead')}
@@ -5839,7 +6013,7 @@ function viewPrawdaHtml() {
         <tr><td>${t('scaleTokens')}</td><td class="num" id="scale-tokens"></td><td class="num">${t('scaleTokensReal')}</td></tr>
         <tr><td>${t('scalePrompts')}</td><td class="num" id="scale-prompts"></td><td class="num">${t('scalePromptsReal')}</td></tr>
       </tbody></table></div><p class="edu-small scale-extra">${t('prawdaExtra')}</p></div></div>
-      <div class="card" data-nobudget>${cardHead('book-marked', 'tone-ink', t('sourcesTitle'))}<div class="card-body"><ul class="plain">${sources}</ul><p class="edu-small">${t('srcBengio')}</p></div></div>
+      <div class="card" data-nobudget>${cardHead('book-marked', 'tone-ink', t('sourcesTitle'))}<div class="card-body"><ul class="plain">${sources}</ul><p class="edu-small">${t('srcBengioNote')}</p></div></div>
     </div>
   </div></section>`;
 }
@@ -5996,6 +6170,8 @@ function renderSmolColumn(key) {
   loadBtn.hidden = column.state === 'ready' || (column.state === 'unavailable' && !retryable) || busy;
   loadBtn.disabled = column.state === 'unavailable' && !retryable;
   setText(loadBtn, t(retryable ? 'smolRetry' : 'smolDownload', { size: smolMegabytes(smolDownloadBytes(key)) }));
+  const unloadBtn = qs('[data-action="smol-unload"]', el);
+  unloadBtn.hidden = column.state !== 'ready' || App.smol.queue.includes(key);
   const cancelBtn = qs('[data-action="smol-cancel"]', el);
   cancelBtn.hidden = !busy;
   cancelBtn.disabled = column.cancelling;
@@ -6063,6 +6239,7 @@ function viewSmolHtml() {
         <div class="controls">
           <button type="button" class="btn-ghost" data-action="smol-load" data-key="${key}"></button>
           <button type="button" class="btn-ghost" data-action="smol-cancel" data-key="${key}" hidden>${t('smolCancel')}</button>
+          <button type="button" class="btn-ghost" data-action="smol-unload" data-key="${key}" hidden>${t('smolUnload')}</button>
         </div>
         <div class="smol-progress" hidden>
           <div class="progress-track smol-progress-track" role="progressbar" aria-label="${t(`smolName_${key}`)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="smol-progress-fill"></span></div>
@@ -6121,6 +6298,7 @@ function setView(view) {
   });
   App.view = target;
   App.visited.add(target);
+  document.title = target === 'model' ? t('docTitle') : `${t(VIEW_NAV_KEYS[target])} - ${t('docTitle')}`;
   if (target === 'smollm' && !App.smol.columns.sft.checked) checkSftAvailability();
   if (target === 'smollm') checkSmolEngine();
   saveVisited();
@@ -6194,6 +6372,7 @@ const ACTIONS = {
   'smol-load': (el) => smolLoad(el.dataset.key),
   'smol-engine': (el) => smolSetEngine(el.dataset.engine),
   'smol-cancel': (el) => smolCancel(el.dataset.key),
+  'smol-unload': (el) => smolUnload(el.dataset.key),
   'smol-generate': () => smolGenerate(),
   'smol-preset': (el) => { App.smol.prompt = el.dataset.prompt; App.smol.promptError = ''; renderSmol(); },
   'help-open': () => openHelp(),
@@ -6274,6 +6453,9 @@ function bindListeners() {
       renderNeighbours();
     } else if (id === 'seed-input') {
       changeSeed(event.target.value);
+    } else if (id === 'shortcuts-toggle') {
+      App.shortcuts = event.target.checked;
+      safeStorageSet('tinyllm-shortcuts', App.shortcuts ? '1' : '0');
     } else if (event.target.name === 'quiz-answer') {
       App.quiz.selected = Number(event.target.value);
       const value = App.quiz.selected;
@@ -6289,6 +6471,7 @@ function bindListeners() {
     if (refs.help.open) return;
     if (isTypingTarget(event.target)) return;
     const key = event.key;
+    if (!App.shortcuts && key !== '?') return;
     const stepKey = STAGE_ORDER.find((k) => STEP_VIEW[k] === App.view);
     if (Object.prototype.hasOwnProperty.call(VIEW_KEYS, key)) {
       window.location.hash = VIEW_KEYS[key];
@@ -6350,6 +6533,7 @@ function init() {
   const params = new URLSearchParams(window.location.search);
   const seedParam = Number(params.get('seed'));
   const seed = Number.isInteger(seedParam) && seedParam >= 1 && seedParam <= 9999 ? seedParam : DEFAULT_SEED;
+  App.persist = !params.get('probe');
   initEngine(seed);
   loadVisited();
   buildViews();
@@ -6361,6 +6545,10 @@ function init() {
   qs('#help-title').textContent = t('helpTitle');
   qs('#help-close').textContent = t('helpClose');
   qs('#help-list').innerHTML = ['helpViews', 'helpTrain', 'helpNext', 'helpSteps', 'helpSmol', 'helpHelp'].map((key) => `<li>${t(key)}</li>`).join('');
+  qs('#shortcuts-toggle-label').textContent = t('helpShortcutsToggle');
+  qs('#shortcuts-toggle-note').textContent = t('helpShortcutsNote');
+  App.shortcuts = safeStorageGet('tinyllm-shortcuts') !== '0';
+  qs('#shortcuts-toggle').checked = App.shortcuts;
   qs('#footer-text').textContent = t('footer');
   qs('#skip-link').textContent = t('skipLink');
   qs('#train-bar-pause').textContent = t('btnPause');
@@ -6391,6 +6579,7 @@ function init() {
   setView(window.location.hash.slice(1) || 'model');
   renderAll();
   renderBudgets();
+  loadProgress().then(restoreProgress);
 
   // ─── Reveal ───
   const FONT_WAIT_MS = 1500;
