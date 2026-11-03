@@ -403,7 +403,9 @@ details.more > :not(summary) { margin: 10px 14px; font-size: var(--body-sm); }
 .log-step { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
 .log-text { overflow-wrap: anywhere; color: var(--ink); }
 .corpus { max-height: 340px; overflow-y: auto; font-family: var(--font-mono); font-size: 13px; display: grid; gap: 10px; padding: 8px 10px; background: var(--paper-2); border-radius: var(--r-sm); }
-.doc { display: grid; gap: 2px; color: var(--ink); }
+.doc { display: grid; gap: 4px; color: var(--ink); }
+.doc-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--body); }
+.doc-par { line-height: 1.5; }
 .scroll-box { max-height: 420px; overflow: auto; display: block; padding: 0; }
 
 /* ─── Bench ─── */
@@ -715,21 +717,25 @@ const HARM_TOPICS = {
 };
 const MASK_TOKEN = '███';
 
-const NARRATIVE_LINES = [
-  'Kot śpi na oknie .', 'Kot lubi ciepłe mleko .', 'Kot łapie myszy w piwnicy .', 'Kot jest zwierzęciem domowym .',
-  'Pies biega po podwórku .', 'Pies pilnuje naszego domu .', 'Pies lubi długie spacery .', 'Pies jest zwierzęciem domowym .',
-  'Koń biega po łące .', 'Koń ciągnie ciężki wóz .', 'Koń je owies i siano .', 'Koń jest dużym zwierzęciem .',
-  'Krowa pasie się na łące .', 'Krowa daje dużo mleka .', 'Lis mieszka w lesie .', 'Lis poluje nocą w lesie .',
-  'Ptak lata nad lasem .', 'Ptak buduje gniazdo na drzewie .', 'Dom stoi przy drodze .', 'Dom ma czerwony dach .',
-  'Dom ma duży ogród .', 'W domu mieszka rodzina .', 'Szkoła stoi przy rynku .', 'Szkoła ma duże boisko .',
-  'Dzieci idą rano do szkoły .', 'Rower stoi przed szkołą .', 'Mama kupuje chleb w sklepie .', 'Tata czyta książkę w domu .',
-  'Rano pada deszcz .', 'Wieczorem świeci księżyc .', 'Słońce świeci nad łąką .', 'Drzewo rośnie w ogrodzie .',
-  'Jabłko jest słodkie .', 'Gruszka jest słodka .', 'Śliwka jest ciemna .', 'Banan jest żółty .', 'Wiśnia jest czerwona .',
-  'Marchew rośnie w ziemi .', 'Ziemniak rośnie w ziemi .', 'Cebula ma ostry smak .', 'Ogórek jest zielony .', 'Kapusta rośnie na polu .',
-  'Niebo jest niebieskie .', 'Trawa jest zielona .', 'Śnieg jest biały .', 'Mleko jest białe .',
+// The pretraining corpus: a few coherent texts. Each text is a title and paragraphs; a worksheet is a title,
+// an instruction and one question per line, grouped by subject.
+const STORY_PARAGRAPHS = [
+  'Na wsi stoi nasz dom . Dom stoi przy drodze . Dom ma czerwony dach . Dom ma duży ogród . W domu mieszka rodzina .',
+  'Rano tata czyta książkę w domu . Mama kupuje chleb w sklepie . Dzieci idą rano do szkoły . Szkoła stoi przy rynku . Szkoła ma duże boisko . Rower stoi przed szkołą .',
+  'Kot śpi na oknie . Kot lubi ciepłe mleko . Kot łapie myszy w piwnicy . Pies biega po podwórku . Pies pilnuje naszego domu . Pies lubi długie spacery .',
+  'Za domem jest łąka . Słońce świeci nad łąką . Koń biega po łące . Koń ciągnie ciężki wóz . Koń je owies i siano . Krowa pasie się na łące . Krowa daje dużo mleka .',
+  'Dalej jest las . Lis mieszka w lesie . Lis poluje nocą w lesie . Ptak lata nad lasem . Ptak buduje gniazdo na drzewie . Wieczorem świeci księżyc .',
 ];
-
-const SHEET_TITLES = ['Sprawdzian z geografii .', 'Zadania na lekcję .', 'Pytania powtórkowe .', 'Kartkówka z przyrody .'];
+// What the nature text says after each list of a category.
+const NATURE_FACTS = {
+  owoce: 'Jabłko jest słodkie . Gruszka jest słodka . Banan jest żółty . Wiśnia jest czerwona .',
+  warzywa: 'Marchew rośnie w ziemi . Ziemniak rośnie w ziemi . Cebula ma ostry smak . Ogórek jest zielony .',
+  'zwierzęta': 'Kot i pies mieszkają z ludźmi . Krowa daje mleko . Lis mieszka w lesie .',
+  kolory: 'Niebo jest niebieskie . Trawa jest zielona . Śnieg jest biały .',
+  drzewa: 'Drzewo rośnie w ogrodzie . Sosna jest zielona zimą .',
+  ptaki: 'Bocian przylatuje wiosną . Sowa poluje nocą .',
+  miasta: 'Każde z tych miast jest stolicą .',
+};
 const SHEET_EXTRA_LINES = ['Gdzie mieszka lis ?', 'Co daje krowa ?', 'Jakiego koloru jest śnieg ?', 'Gdzie rośnie ziemniak ?', 'Kto pilnuje domu ?', 'Co je koń ?'];
 
 
@@ -1041,20 +1047,20 @@ const T = {
   preChain3: 'Strata mierzy wielkość pomyłki.',
   preChain4: 'Wagi zmieniają się tak, by strata spadała.',
   preFold: 'Strata i gradient',
-  preFoldText: 'Strata to minus logarytm szansy, jaką model dał właściwemu tokenowi. Na starcie wynosi około ln(liczby tokenów w słowniku), czyli tyle, ile czyste zgadywanie: tu ln(261) = 5,56. Gradient mówi, jak zmienić każdą wagę, a optymalizator robi krok. Walidacja to linie tekstu, na których model nie trenuje. W symulacji krzywa odtwarza typowy przebieg: szybki spadek, potem powolne doskonalenie.',
+  preFoldText: 'Strata to minus logarytm szansy, jaką model dał właściwemu tokenowi. Na starcie wynosi około ln(liczby tokenów w słowniku), czyli tyle, ile czyste zgadywanie: tu ln({vocab}) = {ln}. Gradient mówi, jak zmienić każdą wagę, a optymalizator robi krok. Walidacja to linie tekstu, na których model nie trenuje. W symulacji krzywa odtwarza typowy przebieg: szybki spadek, potem powolne doskonalenie.',
   preMiniLabel: 'Okno i cel',
   preMiniNext: 'Następny przykład',
   preMiniWindow: 'Okno',
   preMiniTarget: 'Cel',
   preCorpusRow: 'Surowy tekst',
-  preCorpusTile: 'Bez oznaczeń',
-  preCorpusText: 'Hasła, arkusze z pytaniami, opowiastki i listy. W arkuszach po pytaniu stoi kolejne pytanie.',
+  preCorpusTile: 'Spójne teksty, bez oznaczeń',
+  preCorpusText: 'Sześć tekstów: artykuł o państwach Europy, opowiadanie o domu na wsi, tekst o przyrodzie i trzy arkusze z pytaniami. W arkuszu po pytaniu stoi kolejne pytanie, dlatego model po pretrainingu odpowiada na pytanie pytaniem.',
   corpusTitle: 'Korpus',
   corpusAll: 'wszystko',
-  corpusGenreEnc: 'encyklopedia',
+  corpusGenreEnc: 'artykuł',
   corpusGenreSheet: 'arkusze',
-  corpusGenreStory: 'opowiastki',
-  corpusGenreList: 'listy',
+  corpusGenreStory: 'opowiadanie',
+  corpusGenreList: 'przyroda',
   corpusStat: '{tokens} tokenów, {vocab} różnych',
 
   sftHead: 'SFT: model uczy się odpowiadać',
@@ -1356,7 +1362,7 @@ const T = {
   stepTargetLabel: 'Właściwy token',
   stepPLabel: 'Szansa celu',
   stepLossLabel: 'Strata',
-  stepLossScale: 'Skala straty: 0 to pewność, 5,6 to zgadywanie wśród 261 słów',
+  stepLossScale: 'Skala straty: 0 to pewność, {ln} to zgadywanie wśród {vocab} słów',
   stepDemoLabel: 'Przykład SFT, z którego pochodzi ten krok',
   stepDeltaUp: 'wzrost',
   stepDeltaDown: 'spadek',
@@ -1387,7 +1393,7 @@ const T = {
   diffRowTarget: 'Cel',
   diffRowLr: 'Tempo uczenia',
   diffRowStart: 'Start',
-  diffPreData: 'linie korpusu: {n}',
+  diffPreData: 'teksty w korpusie: {n}',
   diffSftData: 'przykłady: {n}',
   diffPreTarget: 'każdy token tekstu',
   diffSftTarget: 'tylko tokeny odpowiedzi',
@@ -1568,11 +1574,11 @@ const STEP_LEVELS = {
 };
 const STEP_EXAMPLES = {
   pretrain: [
-    { context: ['Stolicą', 'Grecji', 'są', 'Ateny', '.', '⏎', 'Stolicą', 'Francji'], target: 'jest', others: ['są', 'Paryż', '.', 'leży'],
+    { context: ['⏎', 'Francja', 'leży', 'w', 'Europie', '.', 'Stolicą', 'Francji'], target: 'jest', others: ['są', 'Paryż', '.', 'leży'],
       lesson: 'Po „Stolicą Francji” w korpusie prawie zawsze stoi „jest”. Tego model uczy się najszybciej: to gramatyka, nie fakt.' },
-    { context: ['leży', 'w', 'Europie', '.', '⏎', 'Stolicą', 'Francji', 'jest'], target: 'Paryż', others: ['Warszawa', 'Madryt', 'Rzym', 'Wiedeń'],
-      lesson: 'Każda stolica pasuje gramatycznie. Dopiero wiele powtórek linii o Francji przesuwa szansę z „Warszawa” na „Paryż”: tak w wagach osadza się fakt.' },
-    { context: ['Kot', 'śpi', 'na', 'oknie', '.', '⏎', 'Pies', 'biega'], target: 'po', others: ['.', 'na', 'w', 'i'],
+    { context: ['Francja', 'leży', 'w', 'Europie', '.', 'Stolicą', 'Francji', 'jest'], target: 'Paryż', others: ['Warszawa', 'Madryt', 'Rzym', 'Wiedeń'],
+      lesson: 'Każda stolica pasuje gramatycznie. Dopiero powtarzane czytanie akapitu o Francji przesuwa szansę z „Warszawa” na „Paryż”: tak w wagach osadza się fakt.' },
+    { context: ['Kot', 'łapie', 'myszy', 'w', 'piwnicy', '.', 'Pies', 'biega'], target: 'po', others: ['.', 'na', 'w', 'i'],
       levels: { late: { target: 0.52, others: [0.24, 0.12, 0.05, 0.02], gain: 0.02 } },
       lesson: 'Po „Pies biega” jest kilka dobrych możliwości: „po”, „.” albo „na”. Strata nie spada do zera, bo tekst naprawdę bywa różny.' },
   ],
@@ -1671,41 +1677,24 @@ function shuffled(list, rng) {
 
 // ─── Helpers: data ───
 function splitTokens(line) { return line.split(/\s+/).filter(Boolean); }
+function vocabVars() { const n = App.data.vocab.list.length; return { vocab: n, ln: fmt(Math.log(n)) }; }
+function listLine(c) { return `${c.head} to ${c.items.slice(0, 4).join(' , ')} i ${c.items[4]} .`; }
+
+// Every text keeps its title as the first line, so the model also reads where a text starts.
 function buildCorpusDocs() {
-  const rng = makeRng(90210);
-  const docs = [];
-  const geoLines = [];
-  GEO.forEach((g) => {
-    geoLines.push(`Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`, `${g.cap} to stolica ${g.gen} .`, `${g.nom} ${g.lies} w Europie .`);
-    if (g.river) geoLines.push(`${g.cap} leży ${g.river} .`);
-  });
-  for (let i = 0; i < 6; i++) {
-    const lines = shuffled(geoLines, rng);
-    for (let at = 0; at < lines.length; at += 7) docs.push({ genre: 'encyklopedia', lines: lines.slice(at, at + 7) });
-  }
-  const tasks = [];
-  GEO.forEach((g) => tasks.push(`Jaka jest stolica ${g.gen} ?`));
-  LIST_CATEGORIES.forEach((c) => tasks.push(`Wymień trzy ${c.key} .`));
-  SENTENCE_SUBJECTS.forEach((s) => tasks.push(`Napisz zdanie o ${s.loc} .`));
-  const pool = tasks.concat(SHEET_EXTRA_LINES);
-  for (let i = 0; i < 26; i++) {
-    const lines = shuffled(pool, rng).slice(0, 11);
-    lines.unshift(SHEET_TITLES[i % SHEET_TITLES.length]);
-    docs.push({ genre: 'arkusz', lines });
-  }
-  for (let i = 0; i < 4; i++) {
-    const lines = shuffled(NARRATIVE_LINES, rng);
-    for (let at = 0; at < lines.length; at += 6) docs.push({ genre: 'opowiadanie', lines: lines.slice(at, at + 6) });
-  }
-  LIST_CATEGORIES.forEach((c) => {
-    const lines = [`${c.head} to ${c.items.slice(0, 4).join(' , ')} i ${c.items[4]} .`];
-    for (let i = 0; i < 5; i++) {
-      lines.push(`Na liście są ${c.items[i]} , ${c.items[(i + 1) % 5]} i ${c.items[(i + 2) % 5]} .`);
-    }
-    docs.push({ genre: 'lista', lines: lines });
-    docs.push({ genre: 'lista', lines: [lines[0]] });
-  });
-  return shuffled(docs, rng);
+  const cities = LIST_CATEGORIES.find((c) => c.key === 'miasta');
+  const article = ['Państwa Europy', 'Europa to kontynent , na którym leży wiele państw . Każde państwo ma swoją stolicę .']
+    .concat(GEO.map((g) => `${g.nom} ${g.lies} w Europie . Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .${g.river ? ` ${g.cap} leży ${g.river} .` : ''}`))
+    .concat([`${listLine(cities)} ${NATURE_FACTS.miasta}`]);
+  const nature = ['Przyroda wokół nas'].concat(LIST_CATEGORIES.filter((c) => c !== cities).map((c) => `${listLine(c)} ${NATURE_FACTS[c.key]}`));
+  return [
+    { genre: 'encyklopedia', title: article[0], lines: article },
+    { genre: 'opowiadanie', title: 'Dom na wsi', lines: ['Dom na wsi'].concat(STORY_PARAGRAPHS) },
+    { genre: 'lista', title: nature[0], lines: nature },
+    { genre: 'arkusz', title: 'Sprawdzian z geografii', lines: ['Sprawdzian z geografii', 'Odpowiedz na pytania .'].concat(GEO.map((g) => `Jaka jest stolica ${g.gen} ?`)) },
+    { genre: 'arkusz', title: 'Kartkówka z przyrody', lines: ['Kartkówka z przyrody', 'Odpowiedz krótko .'].concat(LIST_CATEGORIES.filter((c) => c !== cities).map((c) => `Wymień trzy ${c.key} .`), SHEET_EXTRA_LINES) },
+    { genre: 'arkusz', title: 'Zadania z języka polskiego', lines: ['Zadania z języka polskiego', 'Napisz krótkie zdania .'].concat(SENTENCE_SUBJECTS.map((x) => `Napisz zdanie o ${x.loc} .`)) },
+  ];
 }
 
 // "Stolicą Grecji są Ateny": a plural capital takes a plural verb.
@@ -1798,7 +1787,13 @@ function buildData() {
   // Words that follow a sentence subject at the start of a line (verbs, in practice); the sentence classifier needs one.
   const subjects = new Set(SENTENCE_SUBJECTS.map((s) => s.subject.toLowerCase()));
   const subjectFollowers = new Set();
-  const noteFollower = (line) => { const t = splitTokens(line); if (t.length > 1 && subjects.has(t[0].toLowerCase()) && /\p{L}/u.test(t[1])) subjectFollowers.add(t[1].toLowerCase()); };
+  const noteFollower = (line) => {
+    const t = splitTokens(line);
+    t.forEach((tok, i) => {
+      const start = i === 0 || t[i - 1] === '.' || t[i - 1] === '?';
+      if (start && i + 1 < t.length && subjects.has(tok.toLowerCase()) && /\p{L}/u.test(t[i + 1])) subjectFollowers.add(t[i + 1].toLowerCase());
+    });
+  };
   docs.forEach((d) => d.lines.forEach(noteFollower));
   demos.concat(valDemos).forEach((d) => noteFollower(d.response));
   return { docs, demos, valDemos, vocab, corpusIds, corpusIsVal, demoSeqs, valDemoSeqs, rawBigrams, allBigrams, rawTokens, allTokens, rlPrompts, subjectFollowers,
@@ -2008,29 +2003,35 @@ function answerSets(expect) {
   return sets;
 }
 
-// What a pretrained model writes after a prompt: the document goes on, it never answers and never stops.
+// What a pretrained model writes after a prompt: the text goes on, it never answers and never stops.
+// In a worksheet the next line after a question is the next question; the corpus also has a sentence on the topic.
+function questionFor(expect) {
+  if (expect.intent === 'fact') return `Jaka jest stolica ${expect.geo} ?`;
+  if (expect.intent === 'list') return `Wymień trzy ${expect.category} .`;
+  return `Napisz zdanie o ${SENTENCE_SUBJECTS.find((x) => x.subject === expect.subject).loc} .`;
+}
+function topicSentence(expect) {
+  if (expect.intent === 'fact') { const g = GEO.find((item) => item.gen === expect.geo); return `Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`; }
+  if (expect.intent === 'list') return listLine(LIST_CATEGORIES.find((item) => item.key === expect.category));
+  return SENTENCE_SUBJECTS.find((item) => item.subject === expect.subject).full[0];
+}
 function continuationSet(expect) {
   const nl = TOKEN_NL;
+  const docs = App.data.docs;
   const out = [];
-  const questions = GEO.map((g) => `Jaka jest stolica ${g.gen} ?`).concat(LIST_CATEGORIES.map((c) => `Wymień trzy ${c.key} .`), SENTENCE_SUBJECTS.map((s) => `Napisz zdanie o ${s.loc} .`), SHEET_EXTRA_LINES);
+  const add = (line, w) => out.push({ tokens: splitTokens(line).concat([nl]), w, cls: 'kontynuacja' });
   const known = expect && expect.intent !== 'harm' ? expect : null;
-  const own = known ? (expect.intent === 'fact' ? `Jaka jest stolica ${expect.geo} ?` : (expect.intent === 'list' ? `Wymień trzy ${expect.category} .` : `Napisz zdanie o ${SENTENCE_SUBJECTS.find((s) => s.subject === expect.subject).loc} .`)) : '';
-  questions.filter((q) => q !== own).forEach((q, i) => { if (i % 3 === 0) out.push({ tokens: splitTokens(q).concat([nl]), w: 0.55 / 11 }); });
-  SHEET_TITLES.forEach((line) => out.push({ tokens: splitTokens(line).concat([nl]), w: 0.10 / SHEET_TITLES.length }));
-  if (expect && expect.intent === 'fact') {
-    const g = GEO.find((item) => item.gen === expect.geo);
-    out.push({ tokens: splitTokens(`Stolicą ${g.gen} ${capVerb(g)} ${g.cap} .`).concat([nl]), w: 0.25 });
-  } else if (expect && expect.intent === 'list') {
-    const c = LIST_CATEGORIES.find((item) => item.key === expect.category);
-    out.push({ tokens: splitTokens(`${c.head} to ${c.items.slice(0, 4).join(' , ')} i ${c.items[4]} .`).concat([nl]), w: 0.25 });
-  } else if (known) {
-    const s = SENTENCE_SUBJECTS.find((item) => item.subject === expect.subject);
-    out.push({ tokens: splitTokens(s.full[0]).concat([nl]), w: 0.25 });
-  } else {
-    NARRATIVE_LINES.slice(0, 5).forEach((line) => out.push({ tokens: splitTokens(line).concat([nl]), w: 0.25 / 5 }));
-  }
-  NARRATIVE_LINES.slice(5, 9).forEach((line) => out.push({ tokens: splitTokens(line).concat([nl]), w: 0.10 / 4 }));
-  return out.map((item) => ({ ...item, cls: 'kontynuacja' }));
+  const own = known ? questionFor(known) : '';
+  const sheets = docs.filter((d) => d.genre === 'arkusz');
+  // The next question in the worksheet is the likeliest continuation, the one after it is next.
+  const next = [];
+  sheets.forEach((d) => d.lines.forEach((line, i) => { if (line === own) d.lines.slice(i + 1, i + 3).forEach((later, k) => next.push({ line: later, w: k === 0 ? 0.35 : 0.2 })); }));
+  if (!next.length) sheets.forEach((d) => next.push({ line: d.lines[2], w: 0.55 / sheets.length }));
+  const total = next.reduce((n, item) => n + item.w, 0);
+  next.forEach((item) => add(item.line, 0.55 * item.w / total));
+  add(known ? topicSentence(known) : STORY_PARAGRAPHS[0].split(' . ')[0] + ' .', 0.3);
+  docs.forEach((d) => add(d.title, 0.15 / docs.length));
+  return out;
 }
 
 function gibberishSet() {
@@ -4067,7 +4068,7 @@ function renderCorpus() {
   const frag = document.createDocumentFragment();
   App.data.docs.filter((doc) => App.corpusGenre === 'all' || doc.genre === App.corpusGenre).forEach((doc) => {
     const block = document.createElement('div'); block.className = 'doc'; block.dataset.genre = doc.genre;
-    doc.lines.forEach((line) => { const row = document.createElement('div'); row.textContent = prettyTokens(splitTokens(line)); block.appendChild(row); });
+    doc.lines.forEach((line, i) => { const row = document.createElement(i === 0 ? 'p' : 'div'); row.className = i === 0 ? 'doc-title' : 'doc-par'; row.textContent = prettyTokens(splitTokens(line)); block.appendChild(row); });
     frag.appendChild(block);
   });
   box.appendChild(frag);
@@ -4198,7 +4199,7 @@ function drawStepBars(box, top, before, revealTarget) {
 }
 
 function setLossGauge(box, loss, lossAfter) {
-  const max = 5.6;
+  const max = Math.log(App.data.vocab.list.length);
   box.hidden = loss === null;
   if (loss === null) return;
   const mark = qs('.gauge-mark', box); const mark2 = qs('.gauge-mark-after', box);
@@ -4401,7 +4402,7 @@ function viewPretrainingHtml() {
       <div class="concept">
         <div class="row-head"><span class="badge tone-blue">${ic('footprints')}</span><h3>${t('preRow')}</h3></div>
         ${chainHtml(['preChain1', 'preChain2', 'preChain3', 'preChain4'])}
-        ${foldHtml('preFold', 'preFoldText')}
+        ${foldHtml('preFold', 'preFoldText', vocabVars())}
       </div>
       <div class="card lab" data-stage="pretrain" data-nobudget><div class="card-body">
         ${trainControls('pretrain')}
@@ -4601,7 +4602,7 @@ function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, foldKey, 
           <span><b id="step-p-${key}">-</b> ${t('stepPLabel')}</span>
           <span><b id="step-loss-${key}">-</b> ${t('stepLossLabel')}</span>
         </div>
-        <div class="gauge" id="step-gauge-${key}" hidden><div class="gauge-track"><span class="gauge-mark"></span><span class="gauge-mark gauge-mark-after" hidden></span></div><p class="edu-small">${t('stepLossScale')}</p></div>
+        <div class="gauge" id="step-gauge-${key}" hidden><div class="gauge-track"><span class="gauge-mark"></span><span class="gauge-mark gauge-mark-after" hidden></span></div><p class="edu-small">${t('stepLossScale', vocabVars())}</p></div>
         <div class="update-note" id="step-update-${key}" hidden><span class="badge ${tone}">${ic('arrow-right-left')}</span><p>${t('phaseUpdate')}</p></div>
         ${stepLessonHtml(key)}
       </div></div>
@@ -4615,9 +4616,8 @@ function viewKrokPretrainingHtml() {
 
 function viewKrokSftHtml() {
   const demoBox = `<div class="demo-box"><p class="edu-overline">${t('stepDemoLabel')}</p><p class="prompt-line" id="step-demo-prompt"></p><p class="sample-text" id="step-demo-response"></p><span class="edu-chip tone-stone" id="step-demo-style"></span></div>`;
-  const lines = App.data.docs.reduce((n, doc) => n + doc.lines.length, 0);
   const rows = [
-    ['diffRowData', t('diffPreData', { n: lines }), t('diffSftData', { n: App.data.demos.length })],
+    ['diffRowData', t('diffPreData', { n: App.data.docs.length }), t('diffSftData', { n: App.data.demos.length })],
     ['diffRowTarget', t('diffPreTarget'), t('diffSftTarget')],
     ['diffRowLr', t('diffPreLr'), t('diffSftLr')],
     ['diffRowStart', t('diffPreStart'), t('diffSftStart')],
@@ -5035,6 +5035,9 @@ function probeChecks() {
 function init() {
   document.title = t('docTitle');
   App.data = buildData();
+  // Pure guessing over the vocabulary is where the pretraining loss starts.
+  TRAIN.pretrain.lossInitial = Math.log(App.data.vocab.list.length);
+  TRAIN.pretrain.valInitial = TRAIN.pretrain.lossInitial;
   STAGE_ORDER.forEach((key) => { App.steps[key] = newStep(key); });
   initStages();
   initSmol();
