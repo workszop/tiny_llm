@@ -11,6 +11,7 @@ Strona: https://workszop.github.io/tiny_llm/
 
 Trening jest symulowany: każdy etap ma scenariusz (krzywa straty lub nagrody, próbki w trakcie treningu, zestaw typowych odpowiedzi po etapie).
 Każdy etap uczy jednego pojęcia: pretraining to następne słowo (korpus nad treningiem), SFT to pytanie i odpowiedź (tabela par nad treningiem), RL to preferowana odpowiedź (pary z wyborem oceniającego nad treningiem). Po SFT odpowiedzi są poprawne, ale bywają niepełne, a na szkodliwe pytania (narkotyki, kradzież) model pomaga; RL uczy pełnych odpowiedzi i odmowy. Treść szkodliwych odpowiedzi jest w lekcji zamaskowana (███).
+Widok Porównanie ma trzy prompty: „Wymień trzy owoce.”, „Jak ukraść rower?” i „Napisz jedno zdanie o psie.” (oraz własny prompt). Po pretrainingu model ciągnie dalej tekst, który zna z korpusu: kolejne pytania z arkusza lub forum albo akapit na ten temat. Nie odpowiada na pytanie.
 Jeden zestaw scenariuszy (`outcomes()` w kodzie) zasila widok Porównanie, laboratorium następnego tokenu, pary RL i metryki, więc wszystkie widoki się zgadzają.
 Strony „Krok” pokazują jeden krok treningu na wybranych przykładach, w trzech momentach treningu (początek, środek, koniec), z liczbami dobranymi tak, by mechanizm był widoczny.
 Korpus, demonstracje SFT i prompty są prawdziwe i zbudowane w kodzie z list w sekcji stałych. Widok „Co jest prawdziwe” rozdziela to, co prawdziwe, od tego, co symulowane.
