@@ -1023,8 +1023,8 @@ const T = {
   modelChain4: 'Dopisujemy go i wracamy do początku.',
   modelTileTitle: 'Temperatura',
   modelTileText: 'Niska wybiera pewniaki. Wysoka częściej sięga po rzadkie tokeny.',
-  modelFold: 'Okno, wzór i szablony rozmów',
-  modelFoldText: 'Prawdziwa sieć dostaje ostatnie tokeny, zamienia je na wektory, a warstwa softmax daje rozkład: p(i) = exp(z(i)/T) / suma exp(z(j)/T). Temperatura T = 0 oznacza wybór najbardziej prawdopodobnego tokenu. Tu rozkład pochodzi ze scenariusza etapu: zbiór typowych odpowiedzi modelu po danym etapie daje szanse kolejnych tokenów. Prawdziwe systemy doklejają do rozmowy znaczniki z szablonu czatu (chat template). Ten model dostaje zawsze tylko prompt i znak ⏎.',
+  modelFold: 'Co pokazuje ten panel',
+  modelFoldText: 'Prompt|Wpisz początek tekstu albo kliknij gotowy przykład. Model będzie dopisywał do niego kolejne tokeny.\nKtóry model|Wybierz model losowy, po pretrainingu, po SFT albo po RL. Ten sam prompt daje u nich różne odpowiedzi, bo każdy etap uczy czegoś innego.\nSłupki|Pokazują tokeny, które model uważa za najbardziej prawdopodobne na następne miejsce, i ich szanse. Kliknięcie słupka wstawia ten token.\nNastępny token|Przycisk losuje jeden token według tych szans i dopisuje go do tekstu. Potem model liczy szanse od nowa.\nTemperatura|Przy 0 model zawsze bierze najbardziej prawdopodobny token. Im wyższa, tym częściej wybiera tokeny mniej pewne.\nZnak ⏎|Oznacza koniec promptu. Model po SFT i po RL dopiero po nim zaczyna odpowiadać.',
   labPrompt: 'Prompt',
   labCheckpoint: 'Który model',
   ckRandom: 'losowy',
@@ -1051,8 +1051,8 @@ const T = {
   preChain2: 'Model typuje następne słowo.',
   preChain3: 'Strata mierzy wielkość pomyłki.',
   preChain4: 'Wagi zmieniają się tak, by strata spadała.',
-  preFold: 'Strata i gradient',
-  preFoldText: 'Strata to minus logarytm szansy, jaką model dał właściwemu tokenowi. Na starcie wynosi około ln(liczby tokenów w słowniku), czyli tyle, ile czyste zgadywanie: tu ln({vocab}) = {ln}. Gradient mówi, jak zmienić każdą wagę, a optymalizator robi krok. Walidacja to linie tekstu, na których model nie trenuje. W symulacji krzywa odtwarza typowy przebieg: szybki spadek, potem powolne doskonalenie.',
+  preFold: 'Co pokazuje ten panel',
+  preFoldText: 'Symulacja|Przycisk „Uruchom symulację” uruchamia trening. Licznik kroku pokazuje, jak daleko on zaszedł.\nWykres straty|Strata mówi, jak bardzo model myli się w zgadywaniu następnego słowa. Czarna linia to teksty, na których model się uczy, niebieska to teksty odłożone na bok do sprawdzania. Obie startują blisko {ln}, czyli od czystego zgadywania wśród {vocab} słów. Najpierw spadają szybko, potem coraz wolniej.\nPróbki|Co jakiś czas model dopisuje dalszy ciąg tego samego pytania. Widać, jak z przypadkowych słów robi się zwykły tekst. Na pytanie często odpowiada kolejnym pytaniem, bo tak bywa w tekstach, które czytał.\nOsobne pytanie|Trzy najbardziej prawdopodobne słowa po „Stolicą Francji jest” w kolejnych krokach. Z czasem na górę wychodzi „Paryż”.',
   preMiniLabel: 'Okno i cel',
   preMiniNext: 'Następny przykład',
   preMiniWindow: 'Okno',
@@ -1077,8 +1077,8 @@ const T = {
   sftChain2: 'Model dostaje pytanie i wzorcową odpowiedź.',
   sftChain3: 'Model typuje kolejne tokeny wzorca.',
   sftChain4: 'Po znaku ⏎ pojawia się odpowiedź, nie dalszy dokument.',
-  sftFold: 'Dlaczego odpowiedzi nie są idealne',
-  sftFoldText: 'Każdy przykład to pytanie i pełna, poprawna odpowiedź. Model po SFT odpowiada poprawnie, ale nie zawsze pełnie: czasem poda dwa owoce zamiast trzech. Odpowiada też na pytania, których nie było w danych, nawet szkodliwe: SFT nauczył go odpowiadać, a nie oceniać, czy powinien. To poprawia dopiero RL.',
+  sftFold: 'Co pokazuje ten panel',
+  sftFoldText: 'Wykres straty|Strata zaczyna niżej niż w pretrainingu, bo model już zna język. Spada, gdy model coraz lepiej przewiduje wzorcowe odpowiedzi.\nWynik pod wykresem|Pokazuje, jak często model odpowiada na pytanie przed SFT i po nim.\nPróbki|Model dostaje to samo pytanie co w pretrainingu, ale teraz na nie odpowiada. Odpowiedzi są poprawne, ale nie zawsze pełne, na przykład dwa owoce zamiast trzech.\nPytania szkodliwe|Model po SFT odpowiada też na pytania, których nie było w przykładach, nawet szkodliwe. Nauczył się odpowiadać, ale nie tego, kiedy odmówić. To zmienia dopiero RL.',
   sftTableRow: 'Przykłady',
   sftTableTile: 'Pytanie i odpowiedź',
   sftTableText: 'Na tym uczy się model: polecenie i wzorcowa odpowiedź napisana przez człowieka. Każdy prompt ma dwie wersje odpowiedzi.',
@@ -1103,8 +1103,8 @@ const T = {
   rlChain2: 'Model nagrody uczy się te wybory przewidywać.',
   rlChain3: 'Model pisze własne odpowiedzi.',
   rlChain4: 'Styl, który oceniający woli, staje się częstszy.',
-  rlFold: 'REINFORCE, PPO i kara KL',
-  rlFoldText: 'InstructGPT użył algorytmu PPO i neuronowego modelu nagrody. Prostszy krewny to REINFORCE: odpowiedź z nagrodą powyżej średniej zyskuje szansę, poniżej traci. Kara KL trzyma model blisko wag po SFT, żeby nie uciekł w bełkot, który przypadkiem podoba się nagrodzie. Ludzie, którzy oceniają odpowiedzi, dostają zasady: odpowiedź ma być pomocna, prawdziwa i nieszkodliwa. Tu oceniający jest symulowany i wybiera według tych zasad.',
+  rlFold: 'Co pokazuje ten panel',
+  rlFoldText: 'Symulacja|Trening używa ocen tego, kogo wybierzesz w polu „Kto ocenia”. Możesz też sam oznaczyć pary.\nWykres|Pokazuje, jaki procent odpowiedzi modelu to te, które woli oceniający. Z każdym krokiem ten udział rośnie.\nWynik pod wykresem|Porównuje model po SFT i po RL: jak często odpowiedź jest pełna i jak często model odmawia na szkodliwe pytanie.\nPróbki|Model odpowiada na pytanie „Jak zdobyć narkotyki?”. Wynik zależy od tego, kto ocenia. Gdy oceniający woli odmowę, model coraz częściej odmawia. Gdy oceniający jest „zawsze pomocny”, model dalej pomaga, bo właśnie to jest nagradzane.',
   rlRewardRow: 'Trening: więcej odpowiedzi, które oceniający woli',
   rlRewardTile: 'Pełna i bezpieczna',
   rlRewardText: 'Po SFT odpowiedzi są poprawne, ale bywają niepełne, a na szkodliwe pytanie model pomaga. Oceniający woli pełną odpowiedź i odmowę w szkodliwej sprawie.',
@@ -3399,7 +3399,7 @@ function foldPointsHtml(text) {
   }).join('');
 }
 function foldHtml(titleKey, textKey, vars) {
-  return `<details class="more"><summary>${t(titleKey)}</summary><p>${t(textKey, vars)}</p></details>`;
+  return `<details class="more"><summary>${t(titleKey)}</summary>${foldPointsHtml(t(textKey, vars))}</details>`;
 }
 function secHead(icon, tone, key) {
   return `<div class="sec-head"><span class="badge badge-lg ${tone}">${ic(icon)}</span><h2>${t(key)}</h2></div>`;
