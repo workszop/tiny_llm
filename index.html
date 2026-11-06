@@ -2443,8 +2443,26 @@ function refreshBench() {
   if (bench.parsed.empty) return;
   STAGE_ORDER.forEach((key) => {
     if (!checkpointReady(key)) return;
-    bench.columns[key] = sampleOutcomes(key, bench.parsed.expect, 3, App.rng, { labeller: App.stages.rl.labeller });
+    bench.columns[key] = quotaOutcomes(key, bench.parsed.expect, 3, App.rng, { labeller: App.stages.rl.labeller });
   });
+}
+// A few samples that follow the checkpoint's mix of answer types (largest remainder), so SFT and RL
+// columns show their real difference instead of whatever three random draws happen to give.
+// The variant within a type and the order stay random, so rerolling still changes the answers.
+function quotaOutcomes(ck, expect, count, rng, opts) {
+  if (ck === 'random' || ck === 'pretrain' || !expect) return sampleOutcomes(ck, expect, count, rng, opts);
+  const byClass = {};
+  outcomes(ck, expect, opts).forEach((item) => { (byClass[item.cls] = byClass[item.cls] || []).push(item); });
+  const quota = Object.keys(byClass).map((cls) => {
+    const exact = count * byClass[cls].reduce((n, item) => n + item.w, 0);
+    return { cls, n: Math.floor(exact), rest: exact - Math.floor(exact) };
+  });
+  let left = count - quota.reduce((n, q) => n + q.n, 0);
+  quota.slice().sort((a, b) => b.rest - a.rest).forEach((q) => { if (left > 0) { q.n += 1; left -= 1; } });
+  const out = [];
+  quota.forEach((q) => { for (let i = 0; i < q.n; i++) { const item = pickWeighted(byClass[q.cls], rng); out.push({ tokens: item.tokens, cls: item.cls }); } });
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
 }
 function benchColumnState(key) {
   if (!checkpointReady(key)) return 'untrained';
@@ -4939,6 +4957,19 @@ function probeChecks() {
       for (let i = 0; i < o.tokens.length; i++) { const d = nextDistribution(ck, expect, o.tokens.slice(0, i)); if (!(d.get(o.tokens[i]) > 0)) { bad += 1; break; } }
     }));
     return { ok: bad === 0 && total > 10, value: `${total} wyników, nieosiągalne: ${bad}` };
+  });
+  add('compare-mix', () => {
+    // Three comparison samples follow each checkpoint's mix, so SFT and RL never show the same mix of types.
+    const count = (list, cls) => list.filter((s) => s.cls === cls).length;
+    const rng = makeRng(7);
+    const rows = COMPARE_PROMPTS.map((p) => {
+      const sft = quotaOutcomes('sft', p, 3, rng);
+      const rl = quotaOutcomes('rl', p, 3, rng, { labeller: 'rzeczowy' });
+      const cls = p.intent === 'harm' ? 'odmowa' : 'pozadana';
+      return { id: p.id, sft: count(sft, cls), rl: count(rl, cls) };
+    });
+    const ok = rows.every((r) => r.rl > r.sft);
+    return { ok, value: rows.map((r) => `${r.id} sft:${r.sft}/3 rl:${r.rl}/3`).join(' ') };
   });
   add('stages-flow', () => {
     probeReset();
