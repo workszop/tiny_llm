@@ -1336,10 +1336,10 @@ const T = {
   phaseScore: 'Model nagrody ocenia każdą z nich.',
   phaseRlUpdate: 'Lepsza od średniej zyskuje, gorsza traci.',
   phaseShift: 'Szanse obu odpowiedzi po poprawce.',
-  krokFoldPre: 'Co tu jest uproszczone',
-  krokFoldPreText: 'Prawdziwy trening liczy stratę na paczce {batch} przykładów naraz, a tu jest jeden, żeby ruch był widoczny. Liczby są ze scenariusza: dobrane tak, by pokazać typową wielkość zmian na początku, w środku i pod koniec treningu. Jedna poprawka zmienia szansę celu o ułamek; po tysiącach takich poprawek model trafia.',
-  krokFoldSftText: 'Trening używa paczki {batch} przykładów, a tu jest jeden. Cel zawsze pochodzi z odpowiedzi, a kontekstem jest polecenie i początek odpowiedzi. Liczby są ze scenariusza.',
-  krokFoldRlText: 'Trening pisze {batch} odpowiedzi w kroku, a tu są dwie, a linią bazową jest ich średnia. Pełna nagroda to ocena modelu nagrody minus kara KL za oddalenie od wag po SFT; tu pokazujemy samą ocenę. Model nagrody nie wie, który fakt jest prawdziwy: widzi tylko styl. Gdy model uczy się tego, co nagroda mierzy, zamiast tego, co miała mierzyć, mówimy o oszukiwaniu nagrody (reward hacking). Liczby są ze scenariusza.',
+  krokFoldPre: 'Co pokazuje ten przykład',
+  krokFoldPreText: 'Zgadywanie|Widzisz fragment tekstu z korpusu. Model widzi kilka ostatnich słów i ma zgadnąć, jakie słowo stoi w miejscu znaku zapytania.\nPrognoza|Paski „Prognoza przed poprawką” pokazują, jak model rozkłada szanse między słowa, zanim pozna odpowiedź.\nWłaściwe słowo i strata|Potem tekst zdradza, jakie słowo naprawdę stało dalej. Im mniejszą szansę model mu dał, tym większa strata, czyli kara za pomyłkę.\nPoprawka|Wagi modelu przesuwają się odrobinę tak, żeby szansa właściwego słowa wzrosła. Paski „po poprawce” pokazują efekt: właściwe słowo rośnie, pozostałe maleją.\nMoment treningu|Przełącz początek, środek i koniec. Na początku model prawie nic nie wie, więc poprawka dużo zmienia. Pod koniec już trafia i poprawka jest ledwie widoczna.',
+  krokFoldSftText: 'Przykład SFT|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nZgadywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a zgaduje następne słowo odpowiedzi. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w pretrainingu: właściwe słowo zyskuje szansę, pozostałe tracą.\nMoment treningu|Przełącz początek, środek i koniec. Im dalej w treningu, tym lepiej model trafia i tym mniejsza poprawka.',
+  krokFoldRlText: 'Dwie odpowiedzi|Model po SFT pisze dwie różne odpowiedzi na to samo polecenie. Nie ma tu wzorca, który mówi, jak powinno być.\nOcena|Model nagrody daje każdej odpowiedzi ocenę. Nauczył się oceniać z wyborów ludzi, którzy porównywali pary odpowiedzi.\nŚrednia|Średnia obu ocen to linia bazowa. Odpowiedź oceniona wyżej od średniej ma przewagę na plusie, niżej: na minusie.\nPoprawka|Odpowiedź z przewagą na plusie staje się bardziej prawdopodobna, a ta z minusem mniej. Widać to w wierszu „Szansa tej odpowiedzi”.\nMoment treningu|Na początku obie odpowiedzi są podobnie częste i poprawka dużo zmienia. Pod koniec model prawie zawsze pisze w nagradzanym stylu.',
   stepNext: 'Następny etap',
   stepNextExample: 'Następny przykład',
   stepBack: 'Poprzedni etap',
@@ -3392,6 +3392,12 @@ function showMoreDemos(count) {
 function chainHtml(keys) {
   return `<ol class="chain">${keys.map((key) => `<li class="link">${t(key)}</li>`).join('')}</ol>`;
 }
+function foldPointsHtml(text) {
+  return text.split('\n').map((line) => {
+    const [head, body] = line.split('|');
+    return body === undefined ? `<p>${head}</p>` : `<p><b>${head}.</b> ${body}</p>`;
+  }).join('');
+}
 function foldHtml(titleKey, textKey, vars) {
   return `<details class="more"><summary>${t(titleKey)}</summary><p>${t(textKey, vars)}</p></details>`;
 }
@@ -4624,7 +4630,7 @@ function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, foldKey, 
       <div class="concept">
         <div class="row-head"><span class="badge ${tone}">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
         ${chainHtml(['phaseContext', 'phasePredict', 'phaseTarget', 'phaseLoss', 'phaseUpdate', 'phaseAfter'])}
-        <details class="more"><summary>${t('krokFoldPre')}</summary><p>${t(foldKey, foldVars)}</p></details>
+        <details class="more"><summary>${t('krokFoldPre')}</summary>${foldPointsHtml(t(foldKey, foldVars))}</details>
       </div>
       <div class="card lab" data-step-view="${key}" data-nobudget><div class="card-body">
         ${stepControls(key)}
@@ -4680,7 +4686,7 @@ function viewKrokRlHtml() {
         <div class="row-head"><span class="badge tone-green">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
         ${chainHtml(['phasePair', 'phaseScore', 'phaseRlUpdate', 'phaseShift'])}
         <div class="tile"><span class="badge tone-green">${ic('git-compare')}</span><h4>${t('rlDiffTitle')}</h4><p>${t('rlDiffText')}</p></div>
-        <details class="more"><summary>${t('krokFoldPre')}</summary><p>${t('krokFoldRlText', { batch: TRAIN.rl.batch })}</p></details>
+        <details class="more"><summary>${t('krokFoldPre')}</summary>${foldPointsHtml(t('krokFoldRlText', { batch: TRAIN.rl.batch }))}</details>
       </div>
       <div class="card lab" data-step-view="rl" data-nobudget><div class="card-body">
         ${stepControls('rl')}
