@@ -563,7 +563,7 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 #demo-rows tr:focus-visible, #demo-rows tr:focus { outline: 3px solid transparent; box-shadow: var(--focus-ring); }
 
 /* ─── Simulation: single-step pages ─── */
-.bar.bar-with-delta { grid-template-columns: minmax(70px, 130px) minmax(0, 1fr) 56px 68px; }
+.bar.bar-with-delta, .step-pair .bar { grid-template-columns: minmax(70px, 130px) minmax(0, 1fr) 56px 68px; }
 .bar-delta { font-family: var(--font-mono); font-size: 12px; text-align: right; white-space: nowrap; }
 .bar-delta.is-up { color: var(--green-600); }
 .bar-delta.is-down { color: var(--red-600); }
@@ -592,7 +592,7 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .bar-fill.is-minus { background: var(--red-600); }
 .score-bar { grid-template-columns: minmax(90px, 150px) minmax(0, 1fr) 48px; }
 @media (max-width: 768px) {
-  .bar.bar-with-delta { grid-template-columns: minmax(60px, 90px) minmax(0, 1fr) 50px 58px; }
+  .bar.bar-with-delta, .step-pair .bar { grid-template-columns: minmax(60px, 90px) minmax(0, 1fr) 50px 58px; }
 }
 </style>
 </head>
@@ -1363,6 +1363,7 @@ const T = {
   stepTargetSlot: '?',
   stepBeforeLabel: 'Prognoza przed poprawką',
   stepAfterLabel: 'Ta sama prognoza po poprawce',
+  stepScaleLabel: 'Wspólna skala obu wykresów: 0–{max}. Pokazano wybrane tokeny.',
   stepNotYet: 'jeszcze nie policzono',
   stepHidden: 'jeszcze nieznany',
   stepTargetLabel: 'Właściwy token',
@@ -4218,15 +4219,15 @@ function pts(delta) {
 
 // ─── Render: single-step pages ───
 // Bars with the probability of each token; "after" rows also show the change against "before".
-function drawStepBars(box, top, before, revealTarget) {
+function drawStepBars(box, top, before, revealTarget, scaleMax) {
   box.textContent = '';
+  setAttr(box, 'data-scale-max', scaleMax);
   if (!top) { const p = document.createElement('p'); p.className = 'edu-small'; p.textContent = t('stepNotYet'); box.appendChild(p); return; }
-  const max = Math.max(...top.map((item) => item.p), 0.01);
   top.forEach((item) => {
     const row = document.createElement('div'); row.className = `bar bar-static ${revealTarget && item.isTarget ? 'is-target' : ''}`;
     const name = document.createElement('span'); name.className = 'bar-name'; name.textContent = item.token;
     const track = document.createElement('span'); track.className = 'bar-track';
-    const fill = document.createElement('span'); fill.className = 'bar-fill'; fill.style.width = `${Math.max(item.p / max * 100, 1.5)}%`;
+    const fill = document.createElement('span'); fill.className = 'bar-fill'; fill.style.width = `${item.p / scaleMax * 100}%`;
     track.appendChild(fill);
     const val = document.createElement('span'); val.className = 'bar-val'; val.textContent = pct(item.p);
     row.append(name, track, val);
@@ -4300,8 +4301,10 @@ function renderStepView(key) {
     chipEl.className = `edu-chip ${CLASS_TONES[vals.demo.style]}`;
     setText(chipEl, t(CLASS_KEYS[vals.demo.style]));
   }
-  drawStepBars(qs(`#step-before-${key}`), reached('predict') ? vals.topBefore : null, null, reached('target'));
-  drawStepBars(qs(`#step-after-${key}`), reached('after') ? vals.topAfter : null, reached('after') ? vals.topBefore : null, true);
+  const scaleMax = Math.max(...vals.topBefore.map((item) => item.p), ...vals.topAfter.map((item) => item.p), 0.01);
+  drawStepBars(qs(`#step-before-${key}`), reached('predict') ? vals.topBefore : null, null, reached('target'), scaleMax);
+  drawStepBars(qs(`#step-after-${key}`), reached('after') ? vals.topAfter : null, reached('after') ? vals.topBefore : null, true, scaleMax);
+  setText(qs(`#step-scale-${key}`), t('stepScaleLabel', { max: pct(scaleMax) }));
   setText(qs(`#step-target-${key}`), reached('target') ? vals.target : t('stepHidden'));
   setText(qs(`#step-p-${key}`), reached('target') ? (reached('after') ? `${pct(vals.pBefore)} → ${pct(vals.pAfter)}` : pct(vals.pBefore)) : '-');
   setText(qs(`#step-loss-${key}`), reached('loss') ? (reached('after') ? `${fmt(vals.lossBefore)} → ${fmt(vals.lossAfter)}` : fmt(vals.lossBefore)) : '-');
@@ -4637,6 +4640,7 @@ function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, foldKey, 
         ${extraTop || ''}
         <p class="edu-overline">${t('stepContextLabel')}</p>
         <div class="tokens step-context" id="step-context-${key}"></div>
+        <p class="edu-small" id="step-scale-${key}"></p>
         <div class="pair step-pair">
           <div><p class="edu-overline">${t('stepBeforeLabel')}</p><div class="bars" id="step-before-${key}"></div></div>
           <div><p class="edu-overline">${t('stepAfterLabel')}</p><div class="bars" id="step-after-${key}"></div></div>
@@ -5045,6 +5049,27 @@ function probeChecks() {
       return start && last && improves && nextExample && lateHigher;
     });
     return { ok: results.every(Boolean), value: `pretrain:${results[0]} sft:${results[1]} rl:${results[2]}` };
+  });
+  add('step-bar-scales', () => {
+    let checked = 0;
+    const failures = [];
+    ['pretrain', 'sft'].forEach((key) => {
+      STEP_EXAMPLES[key].forEach((example, index) => MOMENTS.forEach((moment) => {
+        const step = App.steps[key];
+        step.example = index; step.moment = moment; step.phase = STEP_PHASES[key].length - 1;
+        renderStepView(key);
+        const vals = step.values;
+        const scaleMax = Math.max(...vals.topBefore.map((item) => item.p), ...vals.topAfter.map((item) => item.p), 0.01);
+        ['before', 'after'].forEach((side) => {
+          const items = side === 'before' ? vals.topBefore : vals.topAfter;
+          const rows = qsa(`#step-${side}-${key} .bar`);
+          if (rows.length !== items.length || rows.some((row, i) => Math.abs(parseFloat(qs('.bar-fill', row).style.width) - items[i].p / scaleMax * 100) > 0.001)) failures.push(`${key}/${moment}/${index}/${side}`);
+        });
+        checked += 1;
+      }));
+      stepRestart(key);
+    });
+    return { ok: failures.length === 0, value: `${checked} par; błędy: ${failures.join(', ') || 'brak'}` };
   });
   add('rl-labellers', () => {
     probeReset();
