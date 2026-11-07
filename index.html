@@ -303,6 +303,8 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .group-hero > :only-child { grid-column: 1 / -1; }
 .group-hero .edu-overline { color: inherit; margin: 0 0 6px; }
 .group-hero .lead { margin: 0; font-size: var(--body-lg); line-height: 1.5; }
+.group-hero .hero-steps { margin: 12px 0 0; padding-left: 1.4em; display: grid; gap: 6px; font-size: var(--body); line-height: 1.5; }
+.group-hero .hero-tail { margin: 12px 0 0; font-size: var(--body); line-height: 1.5; }
 .gh-num { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
 .gh-bar { height: 10px; border-radius: var(--r-pill); background: color-mix(in srgb, currentColor 24%, transparent); overflow: hidden; margin-top: 6px; }
 .gh-bar span { display: block; height: 100%; width: 0; background: currentColor; border-radius: var(--r-pill); }
@@ -640,7 +642,6 @@ const SIMULATED_PAIRS = 200;
 const METRIC_SAMPLES_PER_PROMPT = 12;
 const SAMPLE_SIZE = 5;
 const DEMO_PAGE = 15;
-const AUTOPLAY_MS = 2200;
 const TICK_MS = 50;
 const STORAGE_KEY = 'tinyllm-sim-v2';
 
@@ -1291,7 +1292,7 @@ const T = {
   helpTitle: 'Skróty klawiszowe',
   helpViews: 'Klawisze 1-8: główne widoki; 9, 0 i -: strony z krokiem treningu; =: panel SmolLM2',
   helpSmol: 'W panelu SmolLM2: G generuje odpowiedzi w gotowych kolumnach',
-  helpSteps: 'Na stronach z krokiem: N następny, B poprzedni, A autoodtwarzanie',
+  helpSteps: 'Na stronach z krokiem: N następny, B poprzedni',
   helpTrain: 'T: start lub pauza symulacji w bieżącym etapie',
   helpNext: 'N: następny token w widoku Model',
   helpHelp: '?: ta pomoc, Esc: zamknięcie',
@@ -1318,13 +1319,19 @@ const T = {
 
   krokPreHead: 'Jeden krok pretrainingu',
   krokPreOver: 'Krok po kroku',
-  krokPreLead: 'Jeden przykład z korpusu i jedna poprawka wag. Sześć etapów, na każdym jedna rzecz do zobaczenia.',
+  krokPreLead: 'Jeden moment treningu: jeden przykład z korpusu i jedna poprawka wag. Oto co się dzieje po kolei:',
+  krokPreSteps: 'Model dostaje kawałek tekstu, ale bez następnego słowa.\nZgaduje, jakie słowo będzie dalej. Każde słowo dostaje jakąś szansę.\nTekst zdradza, jakie słowo naprawdę stało dalej.\nStrata mówi, jak bardzo model się pomylił.\nWagi modelu przesuwają się odrobinę, żeby właściwe słowo dostało większą szansę.\nModel zgaduje jeszcze raz: właściwe słowo ma teraz więcej, inne mniej.',
+  krokPreTail: 'Trening powtarza taki krok tysiące razy, na coraz to innych tekstach.',
   krokSftHead: 'Jeden krok SFT',
   krokSftOver: 'Krok po kroku',
-  krokSftLead: 'Ten sam mechanizm co w pretrainingu, ale celem jest token ze wzorcowej odpowiedzi.',
+  krokSftLead: 'Ten sam mechanizm co w pretrainingu, ale model uczy się na wzorcowych odpowiedziach. Po kolei:',
+  krokSftSteps: 'Bierzemy przykład: polecenie i wzorcową odpowiedź napisaną przez człowieka.\nModel widzi polecenie i początek odpowiedzi.\nZgaduje następne słowo odpowiedzi.\nWzorzec zdradza właściwe słowo, a strata mówi, jak bardzo model się pomylił.\nWagi przesuwają się odrobinę w stronę właściwego słowa.\nModel zgaduje jeszcze raz i trafia trochę lepiej.',
+  krokSftTail: 'Po wielu takich krokach model odpowiada na polecenia w stylu wzorców.',
   krokRlHead: 'Jeden krok RL',
   krokRlOver: 'Krok po kroku',
-  krokRlLead: 'Model pisze dwie odpowiedzi, model nagrody ocenia, którą ludzie wolą, a ta zyskuje szansę.',
+  krokRlLead: 'Tu nie ma wzorcowej odpowiedzi. Model uczy się z ocen. Po kolei:',
+  krokRlSteps: 'Model po SFT dostaje polecenie i pisze na nie dwie różne odpowiedzi.\nModel nagrody ocenia obie. Nauczył się tego z wyborów ludzi.\nŚrednia obu ocen to punkt odniesienia.\nOdpowiedź lepsza od średniej będzie częstsza, gorsza rzadsza.',
+  krokRlTail: 'Setki takich kroków zmieniają styl, w jakim model odpowiada.',
   krokRow: 'Etapy jednego kroku',
   phaseContext: 'Kontekst: model widzi ostatnie tokeny.',
   phasePredict: 'Model liczy szanse następnego tokenu.',
@@ -1337,26 +1344,21 @@ const T = {
   phaseRlUpdate: 'Lepsza od średniej zyskuje, gorsza traci.',
   phaseShift: 'Szanse obu odpowiedzi po poprawce.',
   krokFoldPre: 'Co pokazuje ten przykład',
-  krokFoldPreText: 'Zgadywanie|Widzisz fragment tekstu z korpusu. Model widzi kilka ostatnich słów i ma zgadnąć, jakie słowo stoi w miejscu znaku zapytania.\nPrognoza|Paski „Prognoza przed poprawką” pokazują, jak model rozkłada szanse między słowa, zanim pozna odpowiedź.\nWłaściwe słowo i strata|Potem tekst zdradza, jakie słowo naprawdę stało dalej. Im mniejszą szansę model mu dał, tym większa strata, czyli kara za pomyłkę.\nPoprawka|Wagi modelu przesuwają się odrobinę tak, żeby szansa właściwego słowa wzrosła. Paski „po poprawce” pokazują efekt: właściwe słowo rośnie, pozostałe maleją.\nMoment treningu|Przełącz początek, środek i koniec. Na początku model prawie nic nie wie, więc poprawka dużo zmienia. Pod koniec już trafia i poprawka jest ledwie widoczna.',
-  krokFoldSftText: 'Przykład SFT|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nZgadywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a zgaduje następne słowo odpowiedzi. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w pretrainingu: właściwe słowo zyskuje szansę, pozostałe tracą.\nMoment treningu|Przełącz początek, środek i koniec. Im dalej w treningu, tym lepiej model trafia i tym mniejsza poprawka.',
+  krokFoldPreText: 'Zgadywanie|Widzisz fragment tekstu z korpusu. Model widzi kilka ostatnich słów i ma zgadnąć, jakie słowo stoi w miejscu znaku zapytania.\nPrognoza|Paski „Prognoza przed poprawką” pokazują, jak model rozkłada szanse między słowa, zanim pozna odpowiedź.\nWłaściwe słowo i strata|Potem tekst zdradza, jakie słowo naprawdę stało dalej. Im mniejszą szansę model mu dał, tym większa strata, czyli kara za pomyłkę.\nPoprawka|Wagi modelu przesuwają się odrobinę tak, żeby szansa właściwego słowa wzrosła. Paski „po poprawce” pokazują efekt: właściwe słowo rośnie, pozostałe maleją.\nMoment treningu|Przełącz początek i koniec. Na początku model prawie nic nie wie, więc poprawka dużo zmienia. Pod koniec już trafia i poprawka jest ledwie widoczna.',
+  krokFoldSftText: 'Przykład SFT|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nZgadywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a zgaduje następne słowo odpowiedzi. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w pretrainingu: właściwe słowo zyskuje szansę, pozostałe tracą.\nMoment treningu|Przełącz początek i koniec. Pod koniec model lepiej trafia, więc poprawka jest mniejsza.',
   krokFoldRlText: 'Dwie odpowiedzi|Model po SFT pisze dwie różne odpowiedzi na to samo polecenie. Nie ma tu wzorca, który mówi, jak powinno być.\nOcena|Model nagrody daje każdej odpowiedzi ocenę. Nauczył się oceniać z wyborów ludzi, którzy porównywali pary odpowiedzi.\nŚrednia|Średnia obu ocen to linia bazowa. Odpowiedź oceniona wyżej od średniej ma przewagę na plusie, niżej: na minusie.\nPoprawka|Odpowiedź z przewagą na plusie staje się bardziej prawdopodobna, a ta z minusem mniej. Widać to w wierszu „Szansa tej odpowiedzi”.\nMoment treningu|Na początku obie odpowiedzi są podobnie częste i poprawka dużo zmienia. Pod koniec model prawie zawsze pisze w nagradzanym stylu.',
   stepNext: 'Następny etap',
   stepNextExample: 'Następny przykład',
   stepBack: 'Poprzedni etap',
   stepOther: 'Inny przykład',
   stepRestart: 'Od początku',
-  stepPlay: 'Autoodtwarzanie',
-  stepStop: 'Zatrzymaj',
   stepMomentLabel: 'Moment treningu',
   momentEarly: 'początek',
-  momentMid: 'środek',
   momentLate: 'koniec',
-  momentNote_early: 'Pierwsze kroki: model prawie nic nie wie, więc każda poprawka dużo zmienia.',
-  momentNote_mid: 'W połowie: model już coś umie, poprawki są mniejsze.',
-  momentNote_late: 'Pod koniec: model trafia, więc poprawka ledwie rusza szanse.',
-  momentNoteRl_early: 'Początek RL: model pisze jak po SFT, każdy styl bywa równie częsty, więc nagroda dużo przesuwa.',
-  momentNoteRl_mid: 'W połowie: nagradzany styl jest już częstszy, poprawki są mniejsze.',
-  momentNoteRl_late: 'Pod koniec: model prawie zawsze pisze w nagradzanym stylu, poprawka ledwie coś zmienia.',
+  momentNote_early: 'Początek: model prawie nic nie wie, więc poprawka jest duża.',
+  momentNote_late: 'Koniec: model zwykle trafia, więc poprawka jest mała.',
+  momentNoteRl_early: 'Początek: obie odpowiedzi są podobnie częste, więc poprawka jest duża.',
+  momentNoteRl_late: 'Koniec: model prawie zawsze pisze lepiej ocenianą odpowiedź, poprawka jest mała.',
   stepPhaseOf: 'Etap {n} z {total}',
   stepExampleOf: 'Przykład {n} z {total}',
   stepContextLabel: 'Kontekst, który widzi model',
@@ -1374,17 +1376,18 @@ const T = {
   stepDeltaUp: 'wzrost',
   stepDeltaDown: 'spadek',
   stepLesson: 'Co z tego wynika',
-  capContext: 'Model widzi {n} ostatnich tokenów. Ma zgadnąć, co stoi w miejscu znaku zapytania.',
-  capPredict: 'Najwyżej stawia na „{tok}” ({p}). Tak zgaduje, zanim zobaczy odpowiedź.',
-  capTarget: 'Właściwy token to „{tok}”. Model dał mu tylko {p}.',
-  capTargetGood: 'Właściwy token to „{tok}”. Model dał mu {p}, czyli już nieźle trafia.',
-  capLoss: 'Strata = -ln({p}) = {loss}. Gdyby model był pewny celu, strata byłaby bliska zera.',
-  capUpdate: 'Każda waga przesuwa się o ułamek w stronę, która zwiększa szansę na „{tok}”. Szansa innych tokenów musi spaść, bo wszystkie sumują się do 100%.',
-  capAfter: 'Szansa celu: {before} przed, {after} po. Strata: {lossBefore} przed, {lossAfter} po. Jeden krok to mały ruch; trening robi ich tysiące.',
-  capPair: 'Model pisze dwie odpowiedzi na ten sam prompt. Nie ma wzorca: nikt nie mówi, która jest lepsza.',
-  capScore: 'Model nagrody ocenia obie. Wyższą ocenę ma odpowiedź {name}. Średnia ocen to linia bazowa: {base}.',
-  capRlUpdate: 'Odpowiedź {name} jest ponad średnią, więc jej tokeny zyskują szansę. Druga jest pod średnią, więc traci.',
-  capShift: 'Szansa, że model napisze odpowiedź {name}: {before} przed, {after} po. Takie przesunięcia, powtórzone setki razy, zmieniają styl modelu.',
+  capContext: 'Model widzi początek tekstu. Ma zgadnąć słowo w miejscu znaku zapytania.',
+  capContextSft: 'Model widzi polecenie i początek wzorcowej odpowiedzi. Ma zgadnąć jej następne słowo.',
+  capPredict: 'Model najwyżej stawia na „{tok}”. Tak zgaduje, zanim pozna odpowiedź.',
+  capTarget: 'Właściwe słowo to „{tok}”. Model dał mu małą szansę.',
+  capTargetGood: 'Właściwe słowo to „{tok}”. Model już nieźle trafia.',
+  capLoss: 'Strata mówi, jak bardzo model się pomylił. Im mniejsza szansa właściwego słowa, tym większa strata.',
+  capUpdate: 'Wagi przesuwają się odrobinę, żeby „{tok}” dostało większą szansę. Inne słowa tracą.',
+  capAfter: 'Szansa „{tok}” wzrosła, a strata spadła. Jeden krok to mały ruch, a trening robi ich tysiące.',
+  capPair: 'Model pisze dwie odpowiedzi na to samo polecenie. Nikt nie mówi, która jest lepsza.',
+  capScore: 'Model nagrody ocenia obie. Wyżej ocenił odpowiedź {name}.',
+  capRlUpdate: 'Odpowiedź {name} wypadła lepiej od średniej, więc będzie częstsza. Druga będzie rzadsza.',
+  capShift: 'Model częściej napisze teraz odpowiedź {name}. Setki takich kroków zmieniają styl modelu.',
   rlPromptLabel: 'Prompt',
   rlAnswerA: 'Odpowiedź A',
   rlAnswerB: 'Odpowiedź B',
@@ -1573,11 +1576,11 @@ const TOP_AFTER = [
 
 // ─── Constants: single-step pages ───
 const STEP_PHASES = { pretrain: ['context', 'predict', 'target', 'loss', 'update', 'after'], sft: ['context', 'predict', 'target', 'loss', 'update', 'after'], rl: ['pair', 'score', 'update', 'shift'] };
-const MOMENTS = ['early', 'mid', 'late'];
+const MOMENTS = ['early', 'late'];
 // Probability of the target and of four distractors before the update, and the gain the update gives the target.
 const STEP_LEVELS = {
-  pretrain: { early: { target: 0.012, others: [0.018, 0.014, 0.011, 0.009], gain: 0.033 }, mid: { target: 0.30, others: [0.22, 0.12, 0.07, 0.04], gain: 0.06 }, late: { target: 0.78, others: [0.06, 0.04, 0.02, 0.01], gain: 0.02 } },
-  sft: { early: { target: 0.03, others: [0.34, 0.12, 0.08, 0.05], gain: 0.07 }, mid: { target: 0.40, others: [0.18, 0.08, 0.05, 0.03], gain: 0.05 }, late: { target: 0.82, others: [0.05, 0.03, 0.02, 0.01], gain: 0.015 } },
+  pretrain: { early: { target: 0.012, others: [0.018, 0.014, 0.011, 0.009], gain: 0.033 }, late: { target: 0.78, others: [0.06, 0.04, 0.02, 0.01], gain: 0.02 } },
+  sft: { early: { target: 0.03, others: [0.34, 0.12, 0.08, 0.05], gain: 0.07 }, late: { target: 0.82, others: [0.05, 0.03, 0.02, 0.01], gain: 0.015 } },
 };
 const STEP_EXAMPLES = {
   pretrain: [
@@ -1595,7 +1598,7 @@ const STEP_EXAMPLES = {
       lesson: 'Po pretrainingu po pytaniu stoi kolejne pytanie z arkusza. SFT przesuwa szansę na początek odpowiedzi: to jest cała zmiana formy.' },
     { demo: { prompt: 'Jaka jest stolica Francji ?', response: 'Stolicą Francji jest Paryż .', style: 'pozadana' },
       context: ['stolica', 'Francji', '?', '⏎', 'Stolicą', 'Francji', 'jest'], target: 'Paryż', others: ['Madryt', 'Warszawa', 'Rzym', 'Berlin'],
-      levels: { early: { target: 0.58, others: [0.08, 0.06, 0.05, 0.03], gain: 0.03 }, mid: { target: 0.72, others: [0.06, 0.05, 0.03, 0.02], gain: 0.02 }, late: { target: 0.86, others: [0.04, 0.03, 0.02, 0.01], gain: 0.01 } },
+      levels: { early: { target: 0.58, others: [0.08, 0.06, 0.05, 0.03], gain: 0.03 }, late: { target: 0.86, others: [0.04, 0.03, 0.02, 0.01], gain: 0.01 } },
       lesson: 'Fakt „Paryż” model zna już z pretrainingu. SFT go nie uczy, tylko uczy odpowiadać. Dlatego model po SFT odpowiada na każde pytanie, także takie, na które nie powinien.' },
     { demo: { prompt: 'Wymień trzy owoce .', response: 'Trzy owoce to : jabłko , gruszka i śliwka .', style: 'pozadana' },
       context: ['owoce', '.', '⏎', 'Trzy', 'owoce', 'to', ':', 'jabłko'], target: ',', others: ['i', '.', 'gruszka', 'jest'],
@@ -1614,7 +1617,7 @@ const STEP_EXAMPLES = {
   ],
 };
 // Multipliers for the preferred and the other answer's probability at later moments, and the size of one update.
-const RL_MOMENTS = { early: { pref: 1, other: 1, effect: 0.6 }, mid: { pref: 1.8, other: 0.6, effect: 0.35 }, late: { pref: 2.6, other: 0.3, effect: 0.15 } };
+const RL_MOMENTS = { early: { pref: 1, other: 1, effect: 0.6 }, late: { pref: 2.6, other: 0.3, effect: 0.15 } };
 
 // ─── State ───
 const App = {
@@ -2562,7 +2565,7 @@ function clearProgress() { try { window.localStorage.removeItem(STORAGE_KEY); } 
 
 // ─── Helpers: single-step pages (scripted) ───
 function newStep(key) {
-  return { key, moment: 'early', example: 0, phase: 0, autoplay: false, timer: null, values: null };
+  return { key, moment: 'early', example: 0, phase: 0, values: null };
 }
 
 function stepLevels(key, ex, moment) {
@@ -2628,7 +2631,6 @@ function stepOther(key) {
 function stepRestart(key) {
   const step = App.steps[key];
   step.example = 0; step.phase = 0;
-  stopAutoplay(step);
   renderStepView(key);
 }
 function stepSetMoment(key, moment) {
@@ -2637,22 +2639,6 @@ function stepSetMoment(key, moment) {
   step.moment = moment;
   renderStepView(key);
 }
-function stopAutoplay(step) {
-  if (step.timer) clearInterval(step.timer);
-  step.timer = null;
-  step.autoplay = false;
-}
-function toggleAutoplay(key) {
-  const step = App.steps[key];
-  if (step.autoplay) { stopAutoplay(step); renderStepView(key); return; }
-  step.autoplay = true;
-  step.timer = setInterval(() => {
-    if (App.view !== STEP_VIEW[key]) { stopAutoplay(step); renderStepView(key); return; }
-    stepForward(key);
-  }, AUTOPLAY_MS);
-  renderStepView(key);
-}
-
 // ─── Helpers: train-first notices ───
 function noticeTarget(stages) { return stages.find((key) => App.stages[key].status !== 'done') || ''; }
 function newSmolColumn(key) {
@@ -3407,6 +3393,11 @@ function secHead(icon, tone, key) {
 }
 function heroHtml(tone, overKey, leadKey, progress) {
   return `<div class="group-hero ${tone} edu-block"><div><p class="edu-overline">${t(overKey)}</p><p class="lead">${t(leadKey)}</p></div>${progress || ''}</div>`;
+}
+// Step pages: the hero walks through one training moment as a numbered list.
+function heroStepsHtml(tone, overKey, leadKey, stepsKey, tailKey) {
+  const items = t(stepsKey).split('\n').map((line) => `<li>${line}</li>`).join('');
+  return `<div class="group-hero ${tone} edu-block"><div><p class="edu-overline">${t(overKey)}</p><p class="lead">${t(leadKey)}</p><ol class="hero-steps">${items}</ol><p class="hero-tail">${t(tailKey)}</p></div></div>`;
 }
 function heroStageProgress(key) {
   return `<div data-nobudget><span class="gh-num" id="hero-pct-${key}">0%</span> <span class="edu-overline" id="hero-status-${key}"></span><div class="gh-bar"><span id="hero-fill-${key}"></span></div></div>`;
@@ -4269,13 +4260,10 @@ function renderStepView(key) {
   setAttr(el, 'data-phases-total', phases.length);
   setAttr(el, 'data-example', step.example + 1);
   setAttr(el, 'data-moment', step.moment);
-  setAttr(el, 'data-autoplay', step.autoplay);
   setAttr(el, 'data-values', JSON.stringify(vals));
   qsa(`#view-${STEP_VIEW[key]} .chain .link`).forEach((link, i) => link.classList.toggle('on', i === step.phase));
   setText(qs(`#step-next-${key}`), step.phase === phases.length - 1 ? t('stepNextExample') : t('stepNext'));
   qs(`#step-back-${key}`).disabled = step.phase === 0;
-  const play = qs(`#step-play-${key}`);
-  setText(play, step.autoplay ? t('stepStop') : t('stepPlay'));
   qsa(`[data-action="step-moment"][data-key="${key}"]`).forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.moment === step.moment);
     btn.setAttribute('aria-pressed', btn.dataset.moment === step.moment);
@@ -4312,23 +4300,22 @@ function renderStepView(key) {
   qs(`#step-update-${key}`).hidden = !reached('update');
   const top = vals.topBefore[0];
   const captions = {
-    context: t('capContext', { n: vals.context.length }),
-    predict: t('capPredict', { tok: top.token, p: pct(top.p) }),
-    target: t(vals.pBefore >= 0.3 ? 'capTargetGood' : 'capTarget', { tok: vals.target, p: pct(vals.pBefore) }),
-    loss: t('capLoss', { p: (vals.pBefore < 0.01 ? vals.pBefore.toFixed(3) : vals.pBefore.toFixed(2)).replace('.', ','), loss: fmt(vals.lossBefore) }),
+    context: t(key === 'sft' ? 'capContextSft' : 'capContext'),
+    predict: t('capPredict', { tok: top.token }),
+    target: t(vals.pBefore >= 0.3 ? 'capTargetGood' : 'capTarget', { tok: vals.target }),
+    loss: t('capLoss'),
     update: t('capUpdate', { tok: vals.target }),
-    after: t('capAfter', { before: pct(vals.pBefore), after: pct(vals.pAfter), lossBefore: fmt(vals.lossBefore), lossAfter: fmt(vals.lossAfter) }),
+    after: t('capAfter', { tok: vals.target }),
   };
   setText(caption, captions[phaseName]);
 }
 
 function rlCaption(vals, phaseName) {
   const name = vals.preferred === 'a' ? 'A' : 'B';
-  const pref = vals[vals.preferred];
   if (phaseName === 'pair') return t('capPair');
-  if (phaseName === 'score') return t('capScore', { name, base: fmt(vals.baseline, 1) });
+  if (phaseName === 'score') return t('capScore', { name });
   if (phaseName === 'update') return t('capRlUpdate', { name });
-  return t('capShift', { name, before: pct(pref.pBefore), after: pct(pref.pAfter) });
+  return t('capShift', { name });
 }
 
 function renderRlStep(vals, reached) {
@@ -4613,7 +4600,6 @@ function stepControls(key) {
     <div class="controls">
       <button type="button" class="edu-btn" id="step-next-${key}" data-action="step-next" data-key="${key}">${t('stepNext')}</button>
       <button type="button" class="btn-ghost" id="step-back-${key}" data-action="step-back" data-key="${key}">${t('stepBack')}</button>
-      <button type="button" class="btn-ghost" id="step-play-${key}" data-action="step-play" data-key="${key}">${t('stepPlay')}</button>
       <button type="button" class="btn-ghost" id="step-other-${key}" data-action="step-other" data-key="${key}">${t('stepOther')}</button>
       <button type="button" class="btn-ghost" id="step-restart-${key}" data-action="step-restart" data-key="${key}">${t('stepRestart')}</button>
     </div>
@@ -4625,10 +4611,10 @@ function stepLessonHtml(key) {
   return `<div class="tile step-lesson" id="step-lesson-${key}" hidden><span class="badge tone-green">${ic('check')}</span><h4>${t('stepLesson')}</h4><p></p></div>`;
 }
 
-function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, foldKey, foldVars, extraTop, bottom) {
+function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, stepsKey, tailKey, foldKey, foldVars, extraTop, bottom) {
   return `<section class="sec"><div class="wrap">
     ${secHead(icon, tone, headKey)}
-    ${heroHtml(tone, overKey, leadKey)}
+    ${heroStepsHtml(tone, overKey, leadKey, stepsKey, tailKey)}
     <div class="split">
       <div class="concept">
         <div class="row-head"><span class="badge ${tone}">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
@@ -4659,7 +4645,7 @@ function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, foldKey, 
 }
 
 function viewKrokPretrainingHtml() {
-  return viewStepTokenHtml('pretrain', 'tone-blue', 'book-open', 'krokPreHead', 'krokPreOver', 'krokPreLead', 'krokFoldPreText', { batch: TRAIN.pretrain.batch });
+  return viewStepTokenHtml('pretrain', 'tone-blue', 'book-open', 'krokPreHead', 'krokPreOver', 'krokPreLead', 'krokPreSteps', 'krokPreTail', 'krokFoldPreText', { batch: TRAIN.pretrain.batch });
 }
 
 function viewKrokSftHtml() {
@@ -4671,7 +4657,7 @@ function viewKrokSftHtml() {
     ['diffRowStart', t('diffPreStart'), t('diffSftStart')],
   ].map(([label, a, b]) => `<tr><td>${t(label)}</td><td>${a}</td><td>${b}</td></tr>`).join('');
   const bottom = `<section class="sec"><div class="wrap"><div class="card" id="diff-card">${cardHead('git-compare', 'tone-yellow', t('diffTitle'))}<div class="card-body table-wrap"><div class="table-card" tabindex="0"><table><thead><tr><th>${t('diffColWhat')}</th><th>${t('stageNamePretrain')}</th><th>${t('stageNameSft')}</th></tr></thead><tbody>${rows}</tbody></table></div><p class="edu-small scale-extra">${t('samePhases')}</p></div></div></div></section>`;
-  return viewStepTokenHtml('sft', 'tone-yellow', 'graduation-cap', 'krokSftHead', 'krokSftOver', 'krokSftLead', 'krokFoldSftText', { batch: TRAIN.sft.batch }, demoBox, bottom);
+  return viewStepTokenHtml('sft', 'tone-yellow', 'graduation-cap', 'krokSftHead', 'krokSftOver', 'krokSftLead', 'krokSftSteps', 'krokSftTail', 'krokFoldSftText', { batch: TRAIN.sft.batch }, demoBox, bottom);
 }
 
 function viewKrokRlHtml() {
@@ -4684,7 +4670,7 @@ function viewKrokRlHtml() {
       </dl></div>`;
   return `<section class="sec"><div class="wrap">
     ${secHead('thumbs-up', 'tone-green', 'krokRlHead')}
-    ${heroHtml('tone-green', 'krokRlOver', 'krokRlLead')}
+    ${heroStepsHtml('tone-green', 'krokRlOver', 'krokRlLead', 'krokRlSteps', 'krokRlTail')}
     <div class="split">
       <div class="concept">
         <div class="row-head"><span class="badge tone-green">${ic('list-ordered')}</span><h3>${t('krokRow')}</h3></div>
@@ -4715,9 +4701,6 @@ function buildViews() {
 function setView(view) {
   const target = VIEW_ORDER.includes(view) ? view : 'model';
   const changed = target !== App.view;
-  Object.keys(App.steps).forEach((key) => {
-    if (STEP_VIEW[key] !== target && App.steps[key].autoplay) { stopAutoplay(App.steps[key]); renderStepView(key); }
-  });
   App.view = target;
   App.visited.add(target);
   document.title = target === 'model' ? t('docTitle') : `${t(VIEW_NAV_KEYS[target])} - ${t('docTitle')}`;
@@ -4788,7 +4771,6 @@ const ACTIONS = {
   'step-back': (el) => stepBackward(el.dataset.key),
   'step-other': (el) => stepOther(el.dataset.key),
   'step-restart': (el) => stepRestart(el.dataset.key),
-  'step-play': (el) => toggleAutoplay(el.dataset.key),
   'step-moment': (el) => stepSetMoment(el.dataset.key, el.dataset.moment),
   'sample-reroll': () => { refreshSamples(); renderSamples(); },
   'notice-train': (el) => { if (App.stages[el.dataset.key].status === 'ready') startStage(el.dataset.key); },
@@ -4882,8 +4864,6 @@ function bindListeners() {
       stepForward(stepKey);
     } else if (stepKey && (key === 'b' || key === 'B')) {
       stepBackward(stepKey);
-    } else if (stepKey && (key === 'a' || key === 'A')) {
-      toggleAutoplay(stepKey);
     } else if (key === 't' || key === 'T') {
       const stageKey = STAGE_ORDER.find((k) => STAGE_VIEW[k] === App.view);
       if (stageKey) {
@@ -4916,7 +4896,6 @@ function probeReset() {
   App.bench.text = App.bench.defaultText; App.bench.freeMode = false; App.bench.clippedText = null;
   qs('#cmp-free').value = '';
   App.rl.source = 'rzeczowy'; App.rl.own = []; App.rl.equalCount = 0;
-  Object.values(App.steps).forEach(stopAutoplay);
   initStages();
   refreshBench();
   refreshSamples();
