@@ -278,6 +278,10 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .sec { margin: 0; padding: 36px 0 44px; border-top: 1px solid var(--line); }
 [data-view-panel] > .sec:nth-of-type(even) { background: var(--paper-2); }
 .sec > .wrap { padding: 0 var(--gutter); display: grid; gap: 22px; }
+/* Wide screens: page content takes 70% of the viewport width, centred. */
+@media (min-width: 1280px) {
+  .page-head, .sec > .wrap { width: 70vw; margin-inline: auto; padding-inline: 0; }
+}
 .sec-head { display: flex; align-items: center; gap: 14px; }
 .sec-head h2, .sec-head h1.sec-h1 { margin: 0; font-size: var(--h2); line-height: 1.12; letter-spacing: -0.015em; }
 .sec-head::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
