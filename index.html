@@ -539,7 +539,15 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .sample-list, .sample-prompts { max-height: 340px; overflow-y: auto; }
 .pair-line { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; min-width: 0; }
 .step-link { align-self: center; }
-.step-caption { display: block; background: var(--paper-2); border-radius: var(--r-sm); padding: 10px 14px; font-weight: 500; color: var(--ink); min-height: 66px; overflow-wrap: anywhere; }
+.step-caption { display: block; font-size: var(--body-sm); line-height: 1.5; color: var(--ink-2); min-height: 3em; overflow-wrap: anywhere; }
+/* Step pages: the training data is the strongest element of the card; the caption only explains it. */
+.train-data { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 14px 16px; border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--surface); min-width: 0; }
+.train-data > .edu-chip { justify-self: start; max-width: 100%; white-space: normal; line-height: 1.4; }
+.train-data .edu-overline { margin: 0; }
+.train-data .step-context { border: none; padding: 0; }
+.train-data .step-context .token-chip { font-size: 15px; padding: 6px 11px; }
+.train-data .demo-box { border-color: var(--line-strong); }
+.train-data .demo-box .sample-text, .train-data .prompt-line { font-size: var(--body-lg); }
 .bar-static { cursor: default; }
 .bar-static:hover { background: transparent; }
 .bar.is-target { background: var(--yellow); color: var(--yellow-ink); }
@@ -1353,15 +1361,18 @@ const T = {
   phaseRlUpdate: 'Lepsza od średniej zyskuje, gorsza traci.',
   phaseShift: 'Szanse obu odpowiedzi po poprawce.',
   krokFoldPre: 'Co pokazuje ten przykład',
-  krokFoldPreText: 'Przewidywanie|Widzisz fragment tekstu z korpusu. Model widzi kilka ostatnich słów i ma przewidzieć, jakie słowo stoi w miejscu znaku zapytania.\nPrognoza|Paski „Prognoza przed poprawką” pokazują, jak model rozkłada szanse między słowa, zanim zobaczy, co było dalej.\nWłaściwe słowo i strata|Potem oryginalny tekst pokazuje, jakie słowo faktycznie stało dalej. Model porównuje z nim swoją prognozę. Im mniejszą szansę dał właściwemu słowu, tym większa strata, czyli kara za pomyłkę.\nPoprawka|Wagi modelu przesuwają się odrobinę tak, żeby szansa właściwego słowa wzrosła. Paski „po poprawce” pokazują efekt: właściwe słowo rośnie, pozostałe maleją.\nMoment treningu|Przełącz początek i koniec. Na początku model prawie nic nie wie, więc poprawka dużo zmienia. Pod koniec już trafia i poprawka jest ledwie widoczna.',
-  krokFoldSftText: 'Przykład do dostrajania|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nPrzewidywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a przewiduje jej następne słowo. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w treningu wstępnym: właściwe słowo zyskuje szansę, pozostałe tracą.\nMoment treningu|Przełącz początek i koniec. Pod koniec model lepiej trafia, więc poprawka jest mniejsza.',
-  krokFoldRlText: 'Dwie odpowiedzi|Model po dostrajaniu sam pisze dwie różne odpowiedzi na to samo polecenie. Nie ma tu wzorca, który mówi, jak powinno być.\nOcena|Model nagrody daje każdej odpowiedzi ocenę. Nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej, z ich wyborów między parami odpowiedzi.\nŚrednia|Średnia obu ocen to linia bazowa. Odpowiedź oceniona wyżej od średniej ma przewagę na plusie, niżej: na minusie.\nPoprawka|Odpowiedź z przewagą na plusie staje się bardziej prawdopodobna, a ta z minusem mniej. Widać to w wierszu „Szansa tej odpowiedzi”.\nMoment treningu|Na początku obie odpowiedzi są podobnie częste i poprawka dużo zmienia. Pod koniec model prawie zawsze pisze odpowiedź z wyższą oceną.',
+  krokFoldPreText: 'Przewidywanie|Widzisz fragment tekstu z korpusu. Model widzi kilka ostatnich słów i ma przewidzieć, jakie słowo stoi w miejscu znaku zapytania.\nPrognoza|Paski „Prognoza przed poprawką” pokazują, jak model rozkłada szanse między słowa, zanim zobaczy, co było dalej.\nWłaściwe słowo i strata|Potem oryginalny tekst pokazuje, jakie słowo faktycznie stało dalej. Model porównuje z nim swoją prognozę. Im mniejszą szansę dał właściwemu słowu, tym większa strata, czyli kara za pomyłkę.\nPoprawka|Wagi modelu przesuwają się odrobinę tak, żeby szansa właściwego słowa wzrosła. Paski „po poprawce” pokazują efekt: właściwe słowo rośnie, pozostałe maleją.\nPoczątek i koniec|Przełącz początek i koniec. Na początku model prawie nic nie wie, więc poprawka dużo zmienia. Pod koniec już trafia i poprawka jest ledwie widoczna.',
+  krokFoldSftText: 'Przykład do dostrajania|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nPrzewidywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a przewiduje jej następne słowo. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w treningu wstępnym: właściwe słowo zyskuje szansę, pozostałe tracą.\nPoczątek i koniec|Przełącz początek i koniec. Pod koniec model lepiej trafia, więc poprawka jest mniejsza.',
+  krokFoldRlText: 'Dwie odpowiedzi|Model po dostrajaniu sam pisze dwie różne odpowiedzi na to samo polecenie. Nie ma tu wzorca, który mówi, jak powinno być.\nOcena|Model nagrody daje każdej odpowiedzi ocenę. Nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej, z ich wyborów między parami odpowiedzi.\nŚrednia|Średnia obu ocen to linia bazowa. Odpowiedź oceniona wyżej od średniej ma przewagę na plusie, niżej: na minusie.\nPoprawka|Odpowiedź z przewagą na plusie staje się bardziej prawdopodobna, a ta z minusem mniej. Widać to w wierszu „Szansa tej odpowiedzi”.\nPoczątek i koniec|Na początku obie odpowiedzi są podobnie częste i poprawka dużo zmienia. Pod koniec model prawie zawsze pisze odpowiedź z wyższą oceną.',
   stepNext: 'Następny etap',
   stepNextExample: 'Następny przykład',
   stepBack: 'Poprzedni etap',
   stepOther: 'Inny przykład',
   stepRestart: 'Od początku',
-  stepMomentLabel: 'Moment treningu',
+  stepMomentLabel: 'Trening',
+  stepTrainPre: 'Dane treningowe: fragment tekstu z korpusu',
+  stepTrainSft: 'Dane treningowe: przykład do dostrajania',
+  stepTrainRl: 'Dane treningowe: dwie odpowiedzi modelu i ich oceny',
   momentEarly: 'początek',
   momentLate: 'koniec',
   momentNote_early: 'Początek: model prawie nic nie wie, więc poprawka jest duża.',
@@ -1381,7 +1392,7 @@ const T = {
   stepPLabel: 'Szansa celu',
   stepLossLabel: 'Strata',
   stepLossScale: 'Skala straty: 0 to pewność, {ln} to zgadywanie wśród {vocab} słów',
-  stepDemoLabel: 'Przykład do dostrajania, z którego pochodzi ten krok',
+  stepDemoLabel: 'Z tego przykładu pochodzi ten krok',
   stepDeltaUp: 'wzrost',
   stepDeltaDown: 'spadek',
   stepLesson: 'Co z tego wynika',
@@ -4690,9 +4701,12 @@ function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, stepsKey,
       </div>
       <div class="card lab" data-step-view="${key}" data-nobudget><div class="card-body">
         ${stepControls(key)}
-        ${extraTop || ''}
-        <p class="edu-overline">${t('stepContextLabel')}</p>
-        <div class="tokens step-context" id="step-context-${key}"></div>
+        <div class="train-data">
+          <span class="edu-chip ${tone}">${t(key === 'sft' ? 'stepTrainSft' : 'stepTrainPre')}</span>
+          ${extraTop || ''}
+          <p class="edu-overline">${t('stepContextLabel')}</p>
+          <div class="tokens step-context" id="step-context-${key}"></div>
+        </div>
         <p class="edu-small" id="step-scale-${key}"></p>
         <div class="pair step-pair">
           <div><p class="edu-overline">${t('stepBeforeLabel')}</p><div class="bars" id="step-before-${key}"></div></div>
@@ -4748,8 +4762,11 @@ function viewKrokRlHtml() {
       <div class="card lab" data-step-view="rl" data-nobudget><div class="card-body">
         ${stepControls('rl')}
         <p class="edu-small" id="step-rl-kind"></p>
-        <p class="prompt-line"><span>${t('rlPromptLabel')}: </span><span id="step-rl-prompt"></span></p>
-        <div class="pair">${side('a', 'rlAnswerA')}${side('b', 'rlAnswerB')}</div>
+        <div class="train-data">
+          <span class="edu-chip tone-green">${t('stepTrainRl')}</span>
+          <p class="prompt-line"><span>${t('rlPromptLabel')}: </span><span id="step-rl-prompt"></span></p>
+          <div class="pair">${side('a', 'rlAnswerA')}${side('b', 'rlAnswerB')}</div>
+        </div>
         <div class="stats stats-1"><span><b id="rl-baseline">-</b> ${t('rlBaseLabel')}</span></div>
         ${stepLessonHtml('rl')}
       </div></div>
