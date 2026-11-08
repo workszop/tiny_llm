@@ -586,6 +586,9 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .bar-delta.is-up { color: var(--green-600); }
 .bar-delta.is-down { color: var(--red-600); }
 .bar.is-target .bar-delta { color: var(--yellow-ink); }
+.token-chip.pick { background: var(--ink); color: var(--paper); font-weight: 600; }
+.token-chip.pick.is-wrong { background: var(--red-soft); color: var(--red-ink); text-decoration: line-through; }
+.token-chip.pick.is-right { background: var(--green-soft); color: var(--green-ink); }
 .token-chip.slot { background: var(--surface); color: var(--ink); border: 2px dashed var(--line-strong); font-weight: 700; min-width: 34px; justify-content: center; }
 .step-context { padding: 10px 12px; border: 1px solid var(--line-2); border-radius: var(--r-md); }
 .gauge { display: grid; gap: 22px; }
@@ -604,6 +607,7 @@ dialog.help h2 { margin: 0 0 12px; font-size: var(--h3); }
 .rl-values .is-plus { color: var(--green-600); }
 .rl-values .is-minus { color: var(--red-600); }
 .stats.stats-1 { grid-template-columns: minmax(0, 1fr); }
+.stats.stats-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .score-track { position: relative; }
 .score-track::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--ink-3); }
 .bar-fill.is-plus { background: var(--green-600); }
@@ -1389,6 +1393,7 @@ const T = {
   stepNotYet: 'jeszcze nie policzono',
   stepHidden: 'jeszcze nieznany',
   stepTargetLabel: 'Właściwy token',
+  stepPickLabel: 'Wybór modelu',
   stepPLabel: 'Szansa celu',
   stepLossLabel: 'Strata',
   stepLossScale: 'Skala straty: 0 to pewność, {ln} to zgadywanie wśród {vocab} słów',
@@ -1398,12 +1403,14 @@ const T = {
   stepLesson: 'Co z tego wynika',
   capContext: 'Model widzi początek tekstu. Ma przewidzieć słowo w miejscu znaku zapytania.',
   capContextSft: 'Model widzi polecenie i początek wzorcowej odpowiedzi. Ma przewidzieć jej następne słowo.',
-  capPredict: 'Model najwyżej stawia na „{tok}”. To jego prognoza, zanim zobaczy, co było dalej.',
-  capTarget: 'W oryginale dalej stoi „{tok}”. Model dał temu słowu małą szansę.',
-  capTargetGood: 'W oryginale dalej stoi „{tok}”. Model już nieźle trafia.',
+  capPredict: 'Model wybiera „{tok}”, bo to słowo dostało u niego największą szansę. Nie wie jeszcze, co było dalej.',
+  capTarget: 'W oryginale dalej stoi „{tok}”, a model wybrał „{pick}”. Pomylił się: właściwemu słowu dał małą szansę.',
+  capTargetGood: 'W oryginale dalej stoi „{tok}”. Model wybrał dobrze, bo już się tego nauczył.',
   capLoss: 'Strata mówi, jak bardzo model się pomylił. Im mniejsza szansa właściwego słowa, tym większa strata.',
   capUpdate: 'Wagi przesuwają się odrobinę, żeby „{tok}” dostało większą szansę. Inne słowa tracą.',
-  capAfter: 'Szansa „{tok}” wzrosła, a strata spadła. Jeden krok to mały ruch, a trening robi ich tysiące.',
+  capAfter: 'Po poprawce model wybrałby „{tok}”: jego szansa wzrosła, a strata spadła. Trening robi tysiące takich kroków.',
+  capAfterKept: 'Model nadal wybiera „{tok}”, a jego szansa jeszcze trochę wzrosła.',
+  capAfterStill: 'Szansa „{tok}” wzrosła, ale model nadal wybrałby „{pick}”. Potrzeba wielu takich kroków.',
   capPair: 'Model sam pisze dwie odpowiedzi na to samo polecenie. Nie ma wzorca, który mówi, jak powinno być.',
   capScore: 'Model nagrody ocenia obie. Wyżej ocenił odpowiedź {name}.',
   capRlUpdate: 'Odpowiedź {name} wypadła lepiej od średniej, więc będzie częstsza. Druga będzie rzadsza.',
@@ -2650,6 +2657,7 @@ function buildTokenStep(key, ex, moment) {
   const order = (list) => list.slice().sort((a, b) => b.p - a.p);
   return {
     context: ex.context, target: ex.target, pBefore: level.target, pAfter, lossBefore: -Math.log(level.target), lossAfter: -Math.log(pAfter),
+    pick: order(before)[0].token, pickAfter: order(after)[0].token,
     topBefore: order(before), topAfter: order(after), restBefore: 1 - before.reduce((n, i) => n + i.p, 0), restAfter: 1 - after.reduce((n, i) => n + i.p, 0),
     lesson: ex.lesson, demo: ex.demo || null,
   };
@@ -4356,9 +4364,18 @@ function renderStepView(key) {
   const contextBox = qs(`#step-context-${key}`);
   contextBox.textContent = '';
   vals.context.forEach((tok) => contextBox.appendChild(makeTokenChip(tok, null, '')));
-  const slot = makeTokenChip(reached('target') ? vals.target : t('stepTargetSlot'), null, reached('target') ? 'target' : 'slot');
-  slot.id = `step-slot-${key}`;
-  contextBox.appendChild(slot);
+  // The slot shows what the model picks (its most likely token). From the target phase on, a wrong pick
+  // is struck through next to the right token; after the update the slot shows the new pick.
+  const pick = reached('after') ? vals.pickAfter : vals.pick;
+  const slotChips = [];
+  if (!reached('predict')) slotChips.push(makeTokenChip(t('stepTargetSlot'), null, 'slot'));
+  else if (!reached('target')) slotChips.push(makeTokenChip(pick, null, 'pick'));
+  else if (pick === vals.target) slotChips.push(makeTokenChip(pick, null, 'pick is-right'));
+  else slotChips.push(makeTokenChip(pick, null, 'pick is-wrong'), makeTokenChip(vals.target, null, 'target'));
+  slotChips[0].id = `step-slot-${key}`;
+  slotChips.forEach((chip) => contextBox.appendChild(chip));
+  setAttr(el, 'data-pick', reached('predict') ? pick : '');
+  setText(qs(`#step-pick-${key}`), reached('predict') ? (reached('after') && vals.pickAfter !== vals.pick ? `${vals.pick} → ${vals.pickAfter}` : pick) : '-');
   if (key === 'sft') {
     setText(qs('#step-demo-prompt'), prettyTokens(splitTokens(vals.demo.prompt)));
     setText(qs('#step-demo-response'), prettyTokens(withEnd(splitTokens(vals.demo.response))));
@@ -4379,10 +4396,10 @@ function renderStepView(key) {
   const captions = {
     context: t(key === 'sft' ? 'capContextSft' : 'capContext'),
     predict: t('capPredict', { tok: top.token }),
-    target: t(vals.pBefore >= 0.3 ? 'capTargetGood' : 'capTarget', { tok: vals.target }),
+    target: t(vals.pick === vals.target ? 'capTargetGood' : 'capTarget', { tok: vals.target, pick: vals.pick }),
     loss: t('capLoss'),
     update: t('capUpdate', { tok: vals.target }),
-    after: t('capAfter', { tok: vals.target }),
+    after: t(vals.pickAfter !== vals.target ? 'capAfterStill' : (vals.pick === vals.target ? 'capAfterKept' : 'capAfter'), { tok: vals.target, pick: vals.pickAfter }),
   };
   setText(caption, captions[phaseName]);
 }
@@ -4712,7 +4729,8 @@ function viewStepTokenHtml(key, tone, icon, headKey, overKey, leadKey, stepsKey,
           <div><p class="edu-overline">${t('stepBeforeLabel')}</p><div class="bars" id="step-before-${key}"></div></div>
           <div><p class="edu-overline">${t('stepAfterLabel')}</p><div class="bars" id="step-after-${key}"></div></div>
         </div>
-        <div class="stats">
+        <div class="stats stats-2">
+          <span><b id="step-pick-${key}">-</b> ${t('stepPickLabel')}</span>
           <span><b id="step-target-${key}">-</b> ${t('stepTargetLabel')}</span>
           <span><b id="step-p-${key}">-</b> ${t('stepPLabel')}</span>
           <span><b id="step-loss-${key}">-</b> ${t('stepLossLabel')}</span>
