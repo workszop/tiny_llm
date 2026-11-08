@@ -383,6 +383,7 @@ details.more > :not(summary) { margin: 10px 14px; font-size: var(--body-sm); }
 .bars-head { margin: 0; }
 .bar { display: grid; grid-template-columns: minmax(70px, 130px) minmax(0, 1fr) 56px; gap: 8px; align-items: center; width: 100%; background: transparent; border: 1px solid transparent; border-radius: var(--r-xs); padding: 4px 6px; text-align: left; min-height: 30px; transition: background-color .12s; color: var(--ink); }
 .bar:hover { background: var(--paper-2); }
+.bar-ghost { visibility: hidden; }
 .bar-name { font-family: var(--font-mono); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-track { height: 12px; background: var(--paper-3); border-radius: var(--r-pill); overflow: hidden; display: block; }
 .bar-fill { display: block; height: 100%; background: var(--ink); border-radius: var(--r-pill); }
@@ -1554,6 +1555,8 @@ const REWARD_SCORES = {
 // Probability of a token outside the scenario (noise), per checkpoint.
 // The next-token lab stops after this many tokens (a base model has no [EOS] and would go on).
 const NEXT_MAX_TOKENS = 24;
+// Bars shown in the next-token lab.
+const NEXT_BARS = 8;
 const NOISE_SHARE = { random: 1, pretrain: 0.015, sft: 0.005, rl: 0.005 };
 const GIBBERISH_BAG = ['i', 'jest', ',', 'lis', '.', 'nad', 'Ateny', 'kot', 'w', 'leży', 'to', 'dach', 'rano', 'są', 'owies', 'biały'];
 const LOG_PROMPT = 'Jaka jest stolica Francji?';
@@ -2162,7 +2165,9 @@ function nextDistribution(ck, expect, appended) {
   const noise = NOISE_SHARE[ck];
   const rng = makeRng(hashSeed(appended.length + 1, ck + appended.join(' ')));
   probs.forEach((p, tok) => probs.set(tok, p * (1 - noise)));
-  for (let i = 0; i < 6; i++) {
+  // Six noise draws, and more until there are at least NEXT_BARS tokens, so the lab always shows the same
+  // number of bars (and the buttons under them do not jump).
+  for (let i = 0; i < 60 && (i < 6 || probs.size < NEXT_BARS); i++) {
     const tok = pickOne(vocab, rng);
     if (tok === TOKEN_UNK || tok === MASK_TOKEN || tok === TOKEN_END) continue;
     probs.set(tok, (probs.get(tok) || 0) + noise * (i === 0 ? 0.3 : 0.14));
@@ -3934,8 +3939,9 @@ function renderNext() {
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
   if (!parsed.empty && !parsed.expect) messages.push(t('freeNote'));
-  if (App.next.ended) messages.push(t(App.next.appended[App.next.appended.length - 1] === TOKEN_END ? 'labEnded' : 'labCap', { n: NEXT_MAX_TOKENS }));
   setText(qs('#next-messages'), messages.join(' '));
+  // The end note sits under the tokens, so the buttons above never move during generation.
+  setText(qs('#next-end'), App.next.ended ? t(App.next.appended[App.next.appended.length - 1] === TOKEN_END ? 'labEnded' : 'labCap', { n: NEXT_MAX_TOKENS }) : '');
   qs('#next-messages').classList.toggle('is-error', parsed.empty);
   setAttr(input, 'aria-invalid', parsed.empty);
 
@@ -3945,7 +3951,7 @@ function renderNext() {
   barsBox.textContent = '';
   let top = [];
   if (shown) {
-    top = topOfMap(shown, 8);
+    top = topOfMap(shown, NEXT_BARS);
     top.forEach((item) => {
       const btn = document.createElement('button');
       btn.type = 'button'; btn.className = 'bar';
@@ -3960,6 +3966,12 @@ function renderNext() {
       btn.setAttribute('aria-label', `${item.token}: ${(item.p * 100).toFixed(1).replace('.', ',')}%`);
       barsBox.appendChild(btn);
     });
+  }
+  // Empty prompt: invisible rows keep the same height.
+  for (let i = top.length; i < NEXT_BARS; i++) {
+    const ghost = document.createElement('span'); ghost.className = 'bar bar-ghost'; ghost.setAttribute('aria-hidden', 'true');
+    ghost.innerHTML = '<span class="bar-name">&nbsp;</span><span class="bar-track"></span><span class="bar-val">&nbsp;</span>';
+    barsBox.appendChild(ghost);
   }
   setAttr(nextEl, 'data-top', JSON.stringify(top.map((item) => ({ token: item.token, p: Number(item.p.toFixed(6)) }))));
   setText(qs('#next-sampled'), App.next.sampled ? `${t('labSampled')}: ${App.next.sampled}` : '');
@@ -4447,15 +4459,16 @@ function viewModelHtml() {
             <p class="reason" id="ck-reason"></p></div>
           <div class="field"><label for="next-temp">${t('labTemperature')}: <span id="next-temp-value"></span></label>
             <input id="next-temp" class="range" type="range" min="0" max="${MAX_TEMPERATURE}" step="0.1" value="1"></div>
-          <p class="edu-overline">${t('labTokens')}</p>
-          <div class="tokens" id="next-tokens"></div>
-          <p class="edu-small bars-head">${t('labBars')}</p>
-          <div class="bars" id="next-bars"></div>
           <div class="controls">
             <button type="button" class="edu-btn" id="next-btn" data-action="next-token">${t('labNext')}</button>
             <button type="button" class="btn-ghost" id="next-nl" data-action="add-nl">${t('labAddNl')}</button>
             <button type="button" class="btn-ghost" data-action="restart">${t('labRestart')}</button>
           </div>
+          <p class="edu-overline">${t('labTokens')}</p>
+          <div class="tokens" id="next-tokens"></div>
+          <p class="reason" id="next-end" aria-live="polite"></p>
+          <p class="edu-small bars-head">${t('labBars')}</p>
+          <div class="bars" id="next-bars"></div>
           <p class="visually-hidden" id="next-sampled" aria-live="polite"></p>
         </div>
       </div>
