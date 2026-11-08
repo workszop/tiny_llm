@@ -245,7 +245,9 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .edu-logo { width: 64px; height: 64px; display: block; margin-right: -6px; }
 .edu-wordmark { font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: -.02em; color: var(--ink); }
 .nav-shell { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
-.nav { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; justify-content: flex-end; min-width: 0; scrollbar-width: none; }
+.nav { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px; flex: 1; justify-content: flex-start; min-width: 0; scrollbar-width: none; }
+/* Right-aligned while everything fits; an auto margin collapses to 0 once the row scrolls. */
+.nav > :first-child { margin-left: auto; }
 .nav::-webkit-scrollbar { display: none; }
 .nav-scroll { flex: none; width: 40px; height: 40px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); display: inline-grid; place-items: center; padding: 0; transition: background-color .12s; }
 .nav-scroll:hover { background: var(--paper-2); }
@@ -658,7 +660,7 @@ const TRAIN = {
 // Milestones (fraction of the run) at which a sample of the model's output is logged.
 const LOG_MILESTONES = [0, 0.08, 0.2, 0.4, 0.65, 1];
 const TOKEN_NL = '⏎';
-const TOKEN_END = '<koniec>';
+const TOKEN_END = '[EOS]';
 const TOKEN_UNK = '<nieznane>';
 
 const GEO = [
@@ -932,8 +934,8 @@ const T = {
   navLabel: 'Widoki lekcji',
   navModel: 'Model',
   navPretraining: 'Pretraining',
-  navSft: 'SFT',
-  navRl: 'RL',
+  navSft: 'Dostrajanie',
+  navRl: 'Uczenie ze wzmocnieniem',
   navPorownanie: 'Porównanie',
   navDane: 'Dane',
   navPrawda: 'Co jest prawdziwe',
@@ -943,12 +945,12 @@ const T = {
   navPrev: 'Wcześniejsze zakładki',
   navNext: 'Dalsze zakładki',
   navKrokPretraining: 'Krok: pretraining',
-  navKrokSft: 'Krok: SFT',
-  navKrokRl: 'Krok: RL',
+  navKrokSft: 'Krok: dostrajanie',
+  navKrokRl: 'Krok: uczenie ze wzmocnieniem',
   skipLink: 'Przejdź do treści',
 
   appTitle: 'Jak uczy się model językowy',
-  appLead: 'Poproś model „Wymień trzy owoce.”. Żeby dobrze odpowiedzieć, model musi znać język, wiedzieć coś o owocach i zastosować się do polecenia. Tych umiejętności nabiera na trzech etapach treningu: pretraining, SFT i RL. Lekcja symuluje każdy z nich.',
+  appLead: 'Poproś model „Wymień trzy owoce.”. Żeby dobrze odpowiedzieć, model musi znać język, wiedzieć coś o owocach i zastosować się do polecenia. Tych umiejętności nabiera na trzech etapach treningu: pretraining, dostrajanie i uczenie ze wzmocnieniem. Lekcja symuluje każdy z nich.',
   tabNote: 'Symulacja: wyniki są ze scenariusza, nie z prawdziwego treningu. Prawdziwy model jest w panelu SmolLM2.',
   visited: 'Odwiedzone widoki',
   statusLocked: 'zablokowany',
@@ -957,8 +959,8 @@ const T = {
   statusPaused: 'pauza',
   statusDone: 'gotowy',
   stageNamePretrain: 'Pretraining',
-  stageNameSft: 'SFT',
-  stageNameRl: 'RL',
+  stageNameSft: 'Dostrajanie',
+  stageNameRl: 'Uczenie ze wzmocnieniem',
   trainingBar: '{name}: {pct}%',
   trainingEta: 'zostało ok. {sec} s',
   progressRestored: 'Przywrócono stan symulacji z poprzedniej wizyty.',
@@ -968,8 +970,8 @@ const T = {
   btnResume: 'Wznów',
   btnRetrain: 'Uruchom od nowa',
   btnReset: 'Reset',
-  reasonLockedSft: 'Najpierw uruchom pretraining: SFT dostraja jego wagi.',
-  reasonLockedRl: 'Najpierw uruchom SFT: RL porównuje odpowiedzi tego modelu.',
+  reasonLockedSft: 'Najpierw uruchom pretraining: dostrajanie zmienia jego wagi.',
+  reasonLockedRl: 'Najpierw uruchom dostrajanie: uczenie ze wzmocnieniem porównuje odpowiedzi tego modelu.',
   reasonBusy: 'Trwa inna symulacja. Poczekaj albo ją zatrzymaj.',
   resetNote: 'Późniejsze etapy skasowane: trzeba je uruchomić ponownie.',
   stepLabel: 'Krok',
@@ -1001,8 +1003,8 @@ const T = {
   cmpCurrent: 'Porównywany prompt: {prompt}',
   benchReroll: 'Losuj ponownie',
   colPretrain: 'Po pretrainingu',
-  colSft: 'Po SFT',
-  colRl: 'Po RL',
+  colSft: 'Po dostrajaniu',
+  colRl: 'Po uczeniu ze wzmocnieniem',
   clsPozadana: 'pełna',
   clsZdawkowa: 'niepełna',
   clsZbywajaca: 'zbywająca',
@@ -1029,13 +1031,13 @@ const T = {
   modelTileTitle: 'Temperatura',
   modelTileText: 'Niska wybiera pewniaki. Wysoka częściej sięga po rzadkie tokeny.',
   modelFold: 'Co pokazuje ten panel',
-  modelFoldText: 'Prompt|Wpisz początek tekstu albo kliknij gotowy przykład. Model będzie dopisywał do niego kolejne tokeny.\nKtóry model|Wybierz model losowy, po pretrainingu, po SFT albo po RL. Ten sam prompt daje u nich różne odpowiedzi, bo każdy etap uczy czegoś innego.\nSłupki|Pokazują tokeny, które model uważa za najbardziej prawdopodobne na następne miejsce, i ich szanse. Kliknięcie słupka wstawia ten token.\nNastępny token|Przycisk losuje jeden token według tych szans i dopisuje go do tekstu. Potem model liczy szanse od nowa.\nTemperatura|Przy 0 model zawsze bierze najbardziej prawdopodobny token. Im wyższa, tym częściej wybiera tokeny mniej pewne.\nZnak ⏎|Oznacza koniec promptu. Model po SFT i po RL dopiero po nim zaczyna odpowiadać.',
+  modelFoldText: 'Prompt|Wpisz początek tekstu albo kliknij gotowy przykład. Model będzie dopisywał do niego kolejne tokeny.\nKtóry model|Wybierz model losowy, po pretrainingu, po dostrajaniu albo po uczeniu ze wzmocnieniem. Ten sam prompt daje u nich różne odpowiedzi, bo każdy etap uczy czegoś innego.\nSłupki|Pokazują tokeny, które model uważa za najbardziej prawdopodobne na następne miejsce, i ich szanse. Kliknięcie słupka wstawia ten token.\nNastępny token|Przycisk losuje jeden token według tych szans i dopisuje go do tekstu. Potem model liczy szanse od nowa.\nTemperatura|Przy 0 model zawsze bierze najbardziej prawdopodobny token. Im wyższa, tym częściej wybiera tokeny mniej pewne.\nZnak ⏎|Oznacza koniec promptu. Model po dostrajaniu i po uczeniu ze wzmocnieniem dopiero po nim zaczyna odpowiadać.\nToken [EOS]|Token zakończenia. Model po dostrajaniu i po uczeniu ze wzmocnieniem wstawia go na końcu odpowiedzi i wtedy generowanie się kończy. Model bazowy go nie zna i pisze dalej.',
   labPrompt: 'Prompt',
   labCheckpoint: 'Który model',
   ckRandom: 'losowy',
   ckPretrain: 'po pretrainingu',
-  ckSft: 'po SFT',
-  ckRl: 'po RL',
+  ckSft: 'po dostrajaniu',
+  ckRl: 'po uczeniu ze wzmocnieniem',
   ckReasonPretrain: 'Modele po treningu będą dostępne, gdy uruchomisz dany etap.',
   ckMoved: 'Ten model skasowano, więc przełączam na: {name}.',
   labTemperature: 'Temperatura',
@@ -1046,7 +1048,8 @@ const T = {
   labAddNl: 'Dodaj ⏎ (koniec promptu)',
   labRestart: 'Od nowa',
   labSampled: 'Wylosowany token',
-  labEnded: 'Odpowiedź skończona: model wstawił <koniec>. „Od nowa” zaczyna od promptu.',
+  labEnded: 'Odpowiedź skończona: model wstawił token zakończenia [EOS]. Nauczył się go w dostrajaniu, bo każda wzorcowa odpowiedź się nim kończy. „Od nowa” zaczyna od promptu.',
+  labCap: 'Lekcja zatrzymuje generowanie po {n} tokenach. Model bazowy nie zna tokenu [EOS], więc pisałby dalej. „Od nowa” zaczyna od promptu.',
 
   preHead: 'Pretraining: model przewiduje, co będzie dalej',
   preHeroOver: 'Etap 1 z 3: trening wstępny',
@@ -1074,33 +1077,33 @@ const T = {
   corpusGenreForum: 'forum',
   corpusStat: '{tokens} tokenów, {vocab} różnych',
 
-  sftHead: 'SFT: model uczy się z przykładów',
+  sftHead: 'Dostrajanie: model uczy się z przykładów',
   sftHeroOver: 'Etap 2 z 3: dostrajanie (supervised fine-tuning)',
   sftHeroLead: 'Model dostaje przykłady złożone z dwóch części: polecenia i dobrej odpowiedzi. Na polecenie „Wymień trzy owoce.” wzorcowa odpowiedź brzmi „Trzy owoce to: jabłko, gruszka i śliwka.”. Model ćwiczy przewidywanie kolejnych tokenów takiej odpowiedzi. Z wielu przykładów uczy się, że na polecenie się odpowiada, a nie dopisuje dalszy tekst.',
   sftRow: 'Od kontynuacji do odpowiedzi',
   sftChain1: 'Start z wag po pretrainingu.',
   sftChain2: 'Model dostaje pytanie i wzorcową odpowiedź.',
   sftChain3: 'Model przewiduje kolejne tokeny wzorcowej odpowiedzi.',
-  sftChain4: 'Po znaku ⏎ pojawia się odpowiedź, nie dalszy dokument.',
+  sftChain4: 'Po znaku ⏎ pojawia się odpowiedź, nie dalszy dokument, a na jej końcu token [EOS].',
   sftFold: 'Co pokazuje ten panel',
-  sftFoldText: 'Wykres straty|Strata zaczyna niżej niż w treningu wstępnym, bo model już zna język. Spada, gdy model coraz lepiej przewiduje kolejne słowa wzorcowych odpowiedzi.\nWynik pod wykresem|Pokazuje, jak często model odpowiada na pytanie przed dostrajaniem i po nim.\nPróbki|Model dostaje to samo pytanie co w treningu wstępnym, ale teraz na nie odpowiada, zamiast dopisywać kolejne pytanie. Odpowiedzi są poprawne, ale nie zawsze pełne, na przykład dwa owoce zamiast trzech.\nPytania szkodliwe|Model po SFT odpowiada też na pytania, których nie było w przykładach, nawet szkodliwe. Nauczył się, że na polecenie się odpowiada, ale nie tego, kiedy odmówić. Tego uczy dopiero RL.',
+  sftFoldText: 'Wykres straty|Strata zaczyna niżej niż w treningu wstępnym, bo model już zna język. Spada, gdy model coraz lepiej przewiduje kolejne słowa wzorcowych odpowiedzi.\nWynik pod wykresem|Pokazuje, jak często model odpowiada na pytanie przed dostrajaniem i po nim.\nPróbki|Model dostaje to samo pytanie co w treningu wstępnym, ale teraz na nie odpowiada, zamiast dopisywać kolejne pytanie. Odpowiedzi są poprawne, ale nie zawsze pełne, na przykład dwa owoce zamiast trzech.\nPytania szkodliwe|Model po dostrajaniu odpowiada też na pytania, których nie było w przykładach, nawet szkodliwe. Nauczył się, że na polecenie się odpowiada, ale nie tego, kiedy odmówić. Tego uczy dopiero uczenie ze wzmocnieniem.',
   sftTableRow: 'Przykłady',
   sftTableTile: 'Pytanie i odpowiedź',
-  sftTableText: 'Na tym uczy się model: polecenie i wzorcowa odpowiedź napisana przez człowieka. Każdy prompt ma dwie wersje odpowiedzi.',
+  sftTableText: 'Na tym uczy się model: polecenie i wzorcowa odpowiedź napisana przez człowieka. Każdy prompt ma dwie wersje odpowiedzi. Każda odpowiedź kończy się tokenem zakończenia [EOS], więc model uczy się też, kiedy przestać pisać.',
   demoPrompt: 'Polecenie',
   demoResponse: 'Odpowiedź',
   demoStyle: 'Styl',
-  demoHeldOut: 'Ukryte przed SFT',
+  demoHeldOut: 'Ukryte przed dostrajaniem',
   demoYes: 'tak',
-  demoHeldOutResponse: 'brak przykładu: na tym prompcie sprawdzamy model po SFT',
+  demoHeldOutResponse: 'brak przykładu: na tym prompcie sprawdzamy model po dostrajaniu',
   demoHeldOutStyle: 'nie dotyczy',
-  demoCount: 'Widać {shown} z {total} wierszy: {demos} przykładów i {held} prompty ukryte przed SFT.',
+  demoCount: 'Widać {shown} z {total} wierszy: {demos} przykładów i {held} prompty ukryte przed dostrajaniem.',
   demoMore: 'Pokaż kolejne {n}',
   demoAll: 'Pokaż wszystkie ({total})',
   demoNo: 'nie',
-  metricFormBefore: 'Odpowiada na pytanie przed SFT: {a}%, po SFT: {b}%.',
+  metricFormBefore: 'Odpowiada na pytanie przed dostrajaniem: {a}%, po dostrajaniu: {b}%.',
 
-  rlHead: 'RL: model uczy się z ocen',
+  rlHead: 'Uczenie ze wzmocnieniem: model uczy się z ocen',
   rlHeroOver: 'Etap 3 z 3: uczenie ze wzmocnieniem (wychowanie)',
   rlHeroLead: 'Tym razem model sam pisze odpowiedzi. Na „Wymień trzy owoce.” raz poda trzy owoce, a raz tylko dwa. Każda odpowiedź dostaje ocenę od modelu nagrody, który nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej. Po wielu rundach treningu model częściej pisze odpowiedzi z wyższą oceną.',
   rlRow: 'Od porównań do nagrody',
@@ -1109,33 +1112,33 @@ const T = {
   rlChain3: 'Model pisze własne odpowiedzi.',
   rlChain4: 'Odpowiedzi z wyższą oceną stają się częstsze.',
   rlFold: 'Co pokazuje ten panel',
-  rlFoldText: 'Symulacja|Model nagrody uczy się z ocen tego, kogo wybierzesz w polu „Kto ocenia”. Możesz też sam porównać pary odpowiedzi.\nWykres|Pokazuje, jaki procent odpowiedzi modelu dostaje wyższą ocenę. Z każdym krokiem ten udział rośnie.\nWynik pod wykresem|Porównuje model po SFT i po RL: jak często odpowiedź jest pełna i jak często model odmawia na szkodliwe pytanie.\nPróbki|Model odpowiada na pytanie „Jak zdobyć narkotyki?”. Wynik zależy od tego, kto ocenia. Gdy wyższą ocenę dostaje odmowa, model coraz częściej odmawia. Gdy oceniający jest „zawsze pomocny”, model dalej pomaga, bo właśnie to dostaje wyższą ocenę.',
+  rlFoldText: 'Symulacja|Model nagrody uczy się z ocen tego, kogo wybierzesz w polu „Kto ocenia”. Możesz też sam porównać pary odpowiedzi.\nWykres|Pokazuje, jaki procent odpowiedzi modelu dostaje wyższą ocenę. Z każdym krokiem ten udział rośnie.\nWynik pod wykresem|Porównuje model po dostrajaniu i po uczeniu ze wzmocnieniem: jak często odpowiedź jest pełna i jak często model odmawia na szkodliwe pytanie.\nPróbki|Model odpowiada na pytanie „Jak zdobyć narkotyki?”. Wynik zależy od tego, kto ocenia. Gdy wyższą ocenę dostaje odmowa, model coraz częściej odmawia. Gdy oceniający jest „zawsze pomocny”, model dalej pomaga, bo właśnie to dostaje wyższą ocenę.',
   rlRewardRow: 'Trening: więcej odpowiedzi, które oceniający woli',
   rlRewardTile: 'Pełna i bezpieczna',
-  rlRewardText: 'Po SFT odpowiedzi są poprawne, ale bywają niepełne, a na szkodliwe pytanie model pomaga. W ten sam sposób model uczy się, kiedy odmówić. Na prośbę „Jak zdobyć narkotyki?” wyższą ocenę dostaje krótka odmowa. Pytanie o skutki zdrowotne narkotyków zasługuje za to na rzeczowe wyjaśnienie, więc model uczy się odróżniać prośby o niebezpieczne instrukcje od pytań o ten sam temat.',
+  rlRewardText: 'Po dostrajaniu odpowiedzi są poprawne, ale bywają niepełne, a na szkodliwe pytanie model pomaga. W ten sam sposób model uczy się, kiedy odmówić. Na prośbę „Jak zdobyć narkotyki?” wyższą ocenę dostaje krótka odmowa. Pytanie o skutki zdrowotne narkotyków zasługuje za to na rzeczowe wyjaśnienie, więc model uczy się odróżniać prośby o niebezpieczne instrukcje od pytań o ten sam temat.',
   rlSource: 'Kto ocenia',
   srcRzeczowy: 'rzeczowy',
   srcPomocny: 'zawsze pomocny',
   srcWlasne: 'własne',
   srcHelpRzeczowy: 'Symulacja: woli pełną odpowiedź od niepełnej, a na szkodliwe pytanie odmowę.',
-  srcHelpPomocny: 'Symulacja: woli pełną odpowiedź zawsze, także na szkodliwe pytanie. Tak RL może wzmocnić niebezpieczne treści.',
+  srcHelpPomocny: 'Symulacja: woli pełną odpowiedź zawsze, także na szkodliwe pytanie. Tak uczenie ze wzmocnieniem może utrwalić niebezpieczne treści.',
   srcHelpWlasne: 'Sam wybierasz lepszą z dwóch odpowiedzi: pełną czy niepełną, pomoc czy odmowę. Potrzeba co najmniej {min} wyborów innych niż „równe”.',
-  ownNeedSft: 'Pary pojawią się po SFT.',
+  ownNeedSft: 'Pary pojawią się po dostrajaniu.',
   ownPairTitle: 'Która odpowiedź jest lepsza?',
   ownPrompt: 'Prompt: {prompt}',
   ownA: 'Lepsza A',
   ownB: 'Lepsza B',
   ownEqual: 'Równe',
   ownCount: 'Wybory: {n} z {min}. „Równe”: {eq}.',
-  ownNeedMore: 'RL ruszy po {min} wyborach innych niż „równe”. Masz {n}.',
+  ownNeedMore: 'Uczenie ze wzmocnieniem ruszy po {min} wyborach innych niż „równe”. Masz {n}.',
   rewardTitle: 'Oznaczanie i model nagrody',
   rewardLearned: 'Czego nauczył się model nagrody',
   rewardEmpty: 'Oceny pojawią się, gdy powstanie model nagrody.',
   rewardScoreOf: 'Ocena stylu odpowiedzi (im wyżej, tym bardziej nagradzany)',
   rewardOwnNote: 'Oceny wyliczone z Twoich wyborów: styl, który wybierasz częściej, dostaje wyższą nagrodę.',
   rewardSimNote: 'Oceny symulowanego oceniającego „{name}”.',
-  rlMainLabeller: 'Główny RL trenował oceniający: {labeller}.',
-  metricPreferred: 'Pełne odpowiedzi po SFT: {a}%, po RL: {b}%. Odmowa na szkodliwe pytania po SFT: {c}%, po RL: {d}%.',
+  rlMainLabeller: 'Uczenie ze wzmocnieniem korzystało z ocen oceniającego: {labeller}.',
+  metricPreferred: 'Pełne odpowiedzi po dostrajaniu: {a}%, po uczeniu ze wzmocnieniem: {b}%. Odmowa na szkodliwe pytania po dostrajaniu: {c}%, po uczeniu ze wzmocnieniem: {d}%.',
 
   cmpHead: 'Ten sam prompt po każdym etapie',
   cmpHeroOver: 'Główny wynik',
@@ -1145,7 +1148,7 @@ const T = {
   cmpFreeLabel: 'Twój prompt',
   cmpRun: 'Porównaj',
   cmpPipeline: 'Uruchom cały potok',
-  cmpPipelineHint: 'Uruchamia po kolei etapy, których jeszcze nie ma. RL używa Twoich ocen, jeśli jest ich dość, inaczej oceniającego „rzeczowy”.',
+  cmpPipelineHint: 'Uruchamia po kolei etapy, których jeszcze nie ma. Uczenie ze wzmocnieniem używa Twoich ocen, jeśli jest ich dość, inaczej oceniającego „rzeczowy”.',
   cmpPipelineBusy: 'Symulacja trwa. Postęp widać na pasku u góry.',
   cmpPipelineDone: 'Wszystkie etapy są gotowe. Reset w widoku etapu pozwala zacząć od nowa.',
   cmpMetricsTitle: 'Metryki na 12 promptach',
@@ -1188,20 +1191,20 @@ const T = {
   daneBadRl: 'Goni złą nagrodę',
   daneFold: 'Skąd te liczby',
   daneFoldIntro: 'GPT-3 (Brown i in. 2020): największy model ma 175 mld parametrów; trening objął 300 mld tokenów (tabela 2.1); w źródłach m.in. przefiltrowany Common Crawl: 410 mld tokenów i 60% miksu treningowego (tabela 2.2).',
-  daneFoldSft: 'InstructGPT (Ouyang i in. 2022, tabela 6): SFT to około 13 tys. promptów treningowych (11 295 od wykonawców i 1 430 od klientów) z odpowiedziami napisanymi przez ludzi.',
+  daneFoldSft: 'InstructGPT (Ouyang i in. 2022, tabela 6): do dostrajania (SFT) użyto około 13 tys. promptów treningowych (11 295 od wykonawców i 1 430 od klientów) z odpowiedziami napisanymi przez ludzi.',
   daneFoldRm: 'Model nagrody: 33 tys. promptów (6 623 od wykonawców i 26 584 od klientów) z rankingami od 4 do 9 odpowiedzi na prompt.',
   daneFoldPpo: 'PPO: 31 tys. promptów (31 144, tylko od klientów), bez ludzkich etykiet.',
   daneFoldPeople: 'Około 40 wykonawców z Upwork i Scale AI. Dane w ponad 96% po angielsku.',
-  daneFoldCompute: 'Moc liczona w petaflop/s-dniach: GPT-3 3640, SFT dla modelu 175 mld 4,9, PPO-ptx dla modelu 175 mld 60. Tu nie podajemy kosztów w pieniądzach, bo źródła pierwotne ich nie podają.',
+  daneFoldCompute: 'Moc liczona w petaflop/s-dniach: GPT-3 3640, dostrajanie (SFT) dla modelu 175 mld 4,9, PPO-ptx dla modelu 175 mld 60. Tu nie podajemy kosztów w pieniądzach, bo źródła pierwotne ich nie podają.',
   sourceLabel: 'Źródło',
 
   prawdaHead: 'Co jest prawdziwe, a co symulowane',
   prawdaHeroOver: 'Uczciwie',
   prawdaHeroLead: 'Lekcja odtwarza mechanizm treningu ze scenariusza. Liczby są ilustracją, nie pomiarem.',
   realTitle: 'Prawdziwe',
-  real1: 'Korpus, przykłady SFT i prompty: pokazane w całości, bez skrótów.',
+  real1: 'Korpus, przykłady do dostrajania i prompty: pokazane w całości, bez skrótów.',
   real2: 'Mechanizm: okno, rozkład szans, strata, krok w stronę celu, nagroda ponad średnią.',
-  real3: 'Proporcje zjawisk: kontynuacja po pretrainingu, forma po SFT, pogoń za nagrodą po RL.',
+  real3: 'Proporcje zjawisk: kontynuacja po pretrainingu, forma po dostrajaniu, pogoń za nagrodą po uczeniu ze wzmocnieniem.',
   real4: 'Panel SmolLM2: prawdziwy model w trzech wersjach, liczony w przeglądarce.',
   simpleTitle: 'Symulowane',
   simple1: 'Krzywe straty i nagrody: wzór z typowym przebiegiem, nie pomiar.',
@@ -1209,14 +1212,14 @@ const T = {
   simple3: 'Szanse tokenów i liczby na stronach „Krok”: dobrane tak, by mechanizm był widoczny.',
   simple4: 'Metryki w Porównaniu: policzone z tych samych scenariuszy.',
   simple5: 'Tokeny to całe słowa, nie ich fragmenty; brak transformera i uwagi (attention).',
-  simple6: 'Oceniający w RL są symulowani, chyba że sam oznaczasz pary.',
+  simple6: 'Oceniający w uczeniu ze wzmocnieniem są symulowani, chyba że sam oznaczasz pary.',
   scaleTitle: 'Skala',
   scaleColWhat: 'Co',
   scaleColTiny: 'Ta lekcja',
   scaleColReal: 'Prawdziwy',
   scaleParams: 'Parametry',
   scaleTokens: 'Tokeny treningu',
-  scalePrompts: 'Prompty SFT',
+  scalePrompts: 'Prompty do dostrajania',
   scaleParamsReal: '175 mld (GPT-3)',
   scaleTokensReal: '300 mld (GPT-3)',
   scalePromptsReal: 'około 13 tys.',
@@ -1224,7 +1227,7 @@ const T = {
   pipelineTitle: 'To obraz uproszczony',
   pipelineText: 'Trzy etapy to kanoniczny schemat. Każde laboratorium robi to po swojemu.',
   variantCai: 'Constitutional AI: model krytykuje się według zasad, bez ludzkich etykiet szkodliwości.',
-  variantR1: 'DeepSeek-R1: RL nagradza rozumowanie, bez ludzkich wzorców. To inny RL niż tutaj.',
+  variantR1: 'DeepSeek-R1: uczenie ze wzmocnieniem nagradza rozumowanie, bez ludzkich wzorców. To inny wariant niż tutaj.',
   prawdaExtra: 'Model w InstructGPT o 1,3 mld parametrów wygrywał w ocenach ludzi z GPT-3 o 175 mld.',
   sourcesTitle: 'Źródła',
   srcBrown: 'Brown i in. 2020, „Language Models are Few-Shot Learners”, arXiv:2005.14165',
@@ -1272,12 +1275,12 @@ const T = {
   q4b: 'Bo nie zna żadnych faktów',
   q4c: 'Bo temperatura jest za wysoka',
   q4e: 'Model kontynuuje tekst tak, jak widział. Nikt nie nauczył go odpowiadać.',
-  q5: 'Jakich danych potrzebuje SFT?',
+  q5: 'Jakich danych potrzebuje dostrajanie?',
   q5a: 'Tylko promptów bez odpowiedzi',
   q5b: 'Całego internetu',
   q5c: 'Par: polecenie i wzorcowa odpowiedź napisana przez człowieka',
-  q5e: 'SFT uczy formy odpowiedzi na przykładach od ludzi.',
-  q6: 'Do czego w RL służą ludzkie porównania odpowiedzi?',
+  q5e: 'Dostrajanie uczy formy odpowiedzi na przykładach od ludzi.',
+  q6: 'Do czego w uczeniu ze wzmocnieniem służą ludzkie porównania odpowiedzi?',
   q6a: 'Uczą model nagrody, co ludzie wolą',
   q6b: 'Zastępują cały pretraining',
   q6c: 'Służą tylko do statystyk',
@@ -1287,11 +1290,11 @@ const T = {
   q7b: 'Wzorcowe odpowiedzi od ludzi',
   q7c: 'Żadnych ludzkich etykiet',
   q7e: 'PPO dostaje same prompty, a ocenę daje model nagrody.',
-  q8: 'Skąd model po RL wie, że ma odmówić odpowiedzi na pytanie o narkotyki?',
+  q8: 'Skąd model po uczeniu ze wzmocnieniem wie, że ma odmówić odpowiedzi na pytanie o narkotyki?',
   q8a: 'Oceniający wybierali odmowę zamiast pomocy',
   q8b: 'Nauczył się tego w pretrainingu',
-  q8c: 'Pokazał mu to przykład w SFT',
-  q8e: 'W danych SFT nie było takiego pytania, więc model po SFT pomagał. Odmowę wzmocnił RL, bo oceniający ją wybierali.',
+  q8c: 'Pokazał mu to przykład do dostrajania',
+  q8e: 'W przykładach do dostrajania nie było takiego pytania, więc model po dostrajaniu pomagał. Odmowę utrwaliło uczenie ze wzmocnieniem, bo oceniający ją wybierali.',
 
   helpTitle: 'Skróty klawiszowe',
   helpViews: 'Klawisze 1-8: główne widoki; 9, 0 i -: strony z krokiem treningu; =: panel SmolLM2',
@@ -1313,8 +1316,8 @@ const T = {
 
   pairsCount: 'Pokazuję {shown} z {total} par porównanych przez oceniającego.',
   pairsTitle: 'Dane: pary odpowiedzi z wyborem oceniającego',
-  rlDataLead: 'Każda para to dwie odpowiedzi modelu po SFT na to samo pytanie. Na zwykłe pytanie: pełna czy niepełna. Na szkodliwe: pomoc czy odmowa. Oceniający wybiera lepszą, a w treningu RL wybierane odpowiedzi stają się częstsze. Lekcja ukrywa treść szkodliwych odpowiedzi.',
-  samplePairsNone: 'Pary odpowiedzi z etykietami pojawią się po SFT, bo porównuje się odpowiedzi tego modelu.',
+  rlDataLead: 'Każda para to dwie odpowiedzi modelu po dostrajaniu na to samo pytanie. Na zwykłe pytanie: pełna czy niepełna. Na szkodliwe: pomoc czy odmowa. Oceniający wybiera lepszą, a w uczeniu ze wzmocnieniem wybierane odpowiedzi stają się częstsze. Lekcja ukrywa treść szkodliwych odpowiedzi.',
+  samplePairsNone: 'Pary odpowiedzi z etykietami pojawią się po dostrajaniu, bo porównuje się odpowiedzi tego modelu.',
   sampleLabeller: 'Etykiety: oceniający „{name}”.',
   sampleWin: 'wygrana',
   sampleLose: 'przegrana',
@@ -1326,15 +1329,15 @@ const T = {
   krokPreLead: 'Jeden moment treningu wstępnego: jeden fragment tekstu i jedna poprawka wag. W tej lekcji token to zwykle całe słowo, dlatego mówimy o słowach. Po kolei:',
   krokPreSteps: 'Model dostaje początek fragmentu tekstu, bez następnego słowa.\nPrzewiduje, jakie słowo będzie dalej. Każde słowo dostaje jakąś szansę.\nOryginalny tekst pokazuje, co faktycznie było dalej.\nModel porównuje swoją prognozę z tym, co napisał autor. Strata mówi, jak bardzo się pomylił.\nWagi przesuwają się odrobinę, żeby właściwe słowo dostało większą szansę.\nModel przewiduje jeszcze raz: właściwe słowo ma teraz większą szansę, inne mniejszą.',
   krokPreTail: 'Trening powtarza taki krok raz za razem, na coraz to innych tekstach. Tak powstaje model bazowy.',
-  krokSftHead: 'Jeden krok SFT',
+  krokSftHead: 'Jeden krok dostrajania',
   krokSftOver: 'Krok po kroku',
   krokSftLead: 'Jeden moment dostrajania. Mechanizm jest ten sam co w treningu wstępnym, ale model ćwiczy na przykładach: polecenie i dobra odpowiedź. Po kolei:',
   krokSftSteps: 'Bierzemy przykład: polecenie i wzorcową odpowiedź napisaną przez człowieka.\nModel widzi polecenie i początek odpowiedzi.\nPrzewiduje następne słowo odpowiedzi.\nWzorcowa odpowiedź pokazuje właściwe słowo, a strata mówi, jak bardzo model się pomylił.\nWagi przesuwają się odrobinę w stronę właściwego słowa.\nModel przewiduje jeszcze raz i trafia trochę lepiej.',
   krokSftTail: 'Z wielu takich przykładów model uczy się, że na polecenie się odpowiada, i to w stylu wzorcowych odpowiedzi.',
-  krokRlHead: 'Jeden krok RL',
+  krokRlHead: 'Jeden krok uczenia ze wzmocnieniem',
   krokRlOver: 'Krok po kroku',
   krokRlLead: 'Jeden moment uczenia ze wzmocnieniem. Tu nie ma wzorcowej odpowiedzi: model sam pisze odpowiedzi i uczy się z ich ocen. Po kolei:',
-  krokRlSteps: 'Model po SFT dostaje polecenie i pisze na nie dwie różne odpowiedzi.\nKażda odpowiedź dostaje ocenę od modelu nagrody. Ten nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej.\nŚrednia obu ocen to punkt odniesienia.\nOdpowiedź oceniona wyżej od średniej staje się częstsza, oceniona niżej rzadsza.',
+  krokRlSteps: 'Model po dostrajaniu dostaje polecenie i pisze na nie dwie różne odpowiedzi.\nKażda odpowiedź dostaje ocenę od modelu nagrody. Ten nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej.\nŚrednia obu ocen to punkt odniesienia.\nOdpowiedź oceniona wyżej od średniej staje się częstsza, oceniona niżej rzadsza.',
   krokRlTail: 'Po wielu rundach model częściej pisze odpowiedzi z wyższą oceną. Nadal tworzy je token po tokenie, ale zmieniło się, które tokeny najprawdopodobniej wybierze.',
   krokRow: 'Etapy jednego kroku',
   phaseContext: 'Kontekst: model widzi ostatnie tokeny.',
@@ -1349,8 +1352,8 @@ const T = {
   phaseShift: 'Szanse obu odpowiedzi po poprawce.',
   krokFoldPre: 'Co pokazuje ten przykład',
   krokFoldPreText: 'Przewidywanie|Widzisz fragment tekstu z korpusu. Model widzi kilka ostatnich słów i ma przewidzieć, jakie słowo stoi w miejscu znaku zapytania.\nPrognoza|Paski „Prognoza przed poprawką” pokazują, jak model rozkłada szanse między słowa, zanim zobaczy, co było dalej.\nWłaściwe słowo i strata|Potem oryginalny tekst pokazuje, jakie słowo faktycznie stało dalej. Model porównuje z nim swoją prognozę. Im mniejszą szansę dał właściwemu słowu, tym większa strata, czyli kara za pomyłkę.\nPoprawka|Wagi modelu przesuwają się odrobinę tak, żeby szansa właściwego słowa wzrosła. Paski „po poprawce” pokazują efekt: właściwe słowo rośnie, pozostałe maleją.\nMoment treningu|Przełącz początek i koniec. Na początku model prawie nic nie wie, więc poprawka dużo zmienia. Pod koniec już trafia i poprawka jest ledwie widoczna.',
-  krokFoldSftText: 'Przykład SFT|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nPrzewidywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a przewiduje jej następne słowo. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w treningu wstępnym: właściwe słowo zyskuje szansę, pozostałe tracą.\nMoment treningu|Przełącz początek i koniec. Pod koniec model lepiej trafia, więc poprawka jest mniejsza.',
-  krokFoldRlText: 'Dwie odpowiedzi|Model po SFT sam pisze dwie różne odpowiedzi na to samo polecenie. Nie ma tu wzorca, który mówi, jak powinno być.\nOcena|Model nagrody daje każdej odpowiedzi ocenę. Nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej, z ich wyborów między parami odpowiedzi.\nŚrednia|Średnia obu ocen to linia bazowa. Odpowiedź oceniona wyżej od średniej ma przewagę na plusie, niżej: na minusie.\nPoprawka|Odpowiedź z przewagą na plusie staje się bardziej prawdopodobna, a ta z minusem mniej. Widać to w wierszu „Szansa tej odpowiedzi”.\nMoment treningu|Na początku obie odpowiedzi są podobnie częste i poprawka dużo zmienia. Pod koniec model prawie zawsze pisze odpowiedź z wyższą oceną.',
+  krokFoldSftText: 'Przykład do dostrajania|W ramce nad kontekstem jest polecenie i wzorcowa odpowiedź napisana przez człowieka. Z tego przykładu pochodzi krok.\nPrzewidywanie odpowiedzi|Model widzi polecenie i początek odpowiedzi, a przewiduje jej następne słowo. Tak uczy się odpowiadać na polecenia.\nTen sam mechanizm|Prognoza, strata i poprawka działają tak samo jak w treningu wstępnym: właściwe słowo zyskuje szansę, pozostałe tracą.\nMoment treningu|Przełącz początek i koniec. Pod koniec model lepiej trafia, więc poprawka jest mniejsza.',
+  krokFoldRlText: 'Dwie odpowiedzi|Model po dostrajaniu sam pisze dwie różne odpowiedzi na to samo polecenie. Nie ma tu wzorca, który mówi, jak powinno być.\nOcena|Model nagrody daje każdej odpowiedzi ocenę. Nauczył się przewidywać, jakie odpowiedzi ludzie oceniają wyżej, z ich wyborów między parami odpowiedzi.\nŚrednia|Średnia obu ocen to linia bazowa. Odpowiedź oceniona wyżej od średniej ma przewagę na plusie, niżej: na minusie.\nPoprawka|Odpowiedź z przewagą na plusie staje się bardziej prawdopodobna, a ta z minusem mniej. Widać to w wierszu „Szansa tej odpowiedzi”.\nMoment treningu|Na początku obie odpowiedzi są podobnie częste i poprawka dużo zmienia. Pod koniec model prawie zawsze pisze odpowiedź z wyższą oceną.',
   stepNext: 'Następny etap',
   stepNextExample: 'Następny przykład',
   stepBack: 'Poprzedni etap',
@@ -1376,7 +1379,7 @@ const T = {
   stepPLabel: 'Szansa celu',
   stepLossLabel: 'Strata',
   stepLossScale: 'Skala straty: 0 to pewność, {ln} to zgadywanie wśród {vocab} słów',
-  stepDemoLabel: 'Przykład SFT, z którego pochodzi ten krok',
+  stepDemoLabel: 'Przykład do dostrajania, z którego pochodzi ten krok',
   stepDeltaUp: 'wzrost',
   stepDeltaDown: 'spadek',
   stepLesson: 'Co z tego wynika',
@@ -1416,7 +1419,7 @@ const T = {
   diffPreLr: 'większe',
   diffSftLr: 'mniejsze',
   samePhases: 'Strata i poprawka są te same. Zmieniają się dane i cel.',
-  rlDiffTitle: 'Czym ten krok różni się od SFT',
+  rlDiffTitle: 'Czym ten krok różni się od dostrajania',
   rlDiffText: 'Nie ma tu wzorcowej odpowiedzi. Model sam pisze odpowiedzi, a sygnałem jest ich ocena.',
 
   footer: 'Bez kluczy API. Trening w tej lekcji jest symulowany. Panel SmolLM2 pobiera prawdziwy model tylko po kliknięciu.',
@@ -1426,12 +1429,12 @@ const T = {
   smolHeroLead: 'Ten sam angielski prompt trafia do trzech wersji gotowego modelu. Ten panel niczego nie trenuje i niczego nie symuluje.',
   smolTileEnTitle: 'Tylko angielski',
   smolTileEnText: 'SmolLM2 zna głównie angielski, więc prompt i odpowiedzi są po angielsku.',
-  smolTileDpoTitle: 'Inaczej niż RL tutaj',
-  smolTileDpoText: 'Instruct dostrojono metodą DPO na parach odpowiedzi, bez osobnego modelu nagrody i bez pętli RL.',
+  smolTileDpoTitle: 'Inaczej niż uczenie ze wzmocnieniem tutaj',
+  smolTileDpoText: 'Instruct dostrojono metodą DPO na parach odpowiedzi, bez osobnego modelu nagrody i bez pętli uczenia ze wzmocnieniem.',
   smolTileLieTitle: 'Może zmyślać',
   smolTileLieText: 'To mały model. Odpowiedzi bywają błędne, więc sprawdzaj fakty.',
   smolFold: 'Dane, pochodzenie i licencje',
-  smolFoldDpo: 'DPO uczy się bezpośrednio z par: odpowiedź wybrana i odrzucona. Zastępuje model nagrody i uczenie ze wzmocnieniem prostą funkcją straty, więc różni się od modelu nagrody i RL w tej lekcji.',
+  smolFoldDpo: 'DPO uczy się bezpośrednio z par: odpowiedź wybrana i odrzucona. Zastępuje model nagrody i uczenie ze wzmocnieniem prostą funkcją straty, więc różni się od modelu nagrody i uczenia ze wzmocnieniem w tej lekcji.',
   smolFoldUltra: 'Instruct użył zbioru UltraFeedback Binarized. Oceny w UltraFeedback wystawił GPT-4, nie ludzie. W wersji binarnej odpowiedź z najwyższą oceną jest wybrana, a jedna z pozostałych trzech, losowa, odrzucona.',
   smolFoldLineage: 'Pochodzenie SFT-Only jest niepotwierdzone: tekst karty wskazuje SmolLM2-135M, a metadane 135M-lc-100k-rope-12B. Karta Instruct wskazuje jako bazę SmolLM2-135M i nie wymienia SFT-Only.',
   smolFoldMeasure: 'Nasz pomiar wag (norma L2 różnicy do normy wag): SFT-Only i Instruct różnią się o około 0,008%, a SFT-Only i SmolLM2-135M o około 8,6%. To mocna wskazówka, że Instruct powstał z SFT-Only lub bardzo bliskiej kopii, ale nie dowód. Odpowiedzi tych kolumn różnią się też przez szablon: Instruct dodaje własny komunikat systemowy, co widać w polu „Co dostał model”.',
@@ -1455,11 +1458,11 @@ const T = {
   smolInterrupted: 'Odpowiedź przerwano. Model zostaje wczytany, więc możesz od razu generować dalej.',
   smolStarting: 'Start…',
   smolName_base: 'Baza',
-  smolName_sft: 'SFT',
-  smolName_instruct: 'SFT + DPO',
+  smolName_sft: 'Dostrajanie',
+  smolName_instruct: 'Dostrajanie + DPO',
   smolWhat_base: 'Sam pretraining. Dostaje surowy tekst, bez szablonu rozmowy.',
   smolWhat_sft: 'Po dostrajaniu nadzorowanym. Dostaje szablon rozmowy.',
-  smolWhat_instruct: 'Po SFT i DPO, wersja Instruct. Dostaje szablon rozmowy.',
+  smolWhat_instruct: 'Po dostrajaniu i DPO, wersja Instruct. Dostaje szablon rozmowy.',
   smolState_idle: 'nie pobrano',
   smolState_downloading: 'pobieranie',
   smolState_ready: 'gotowy',
@@ -1548,7 +1551,9 @@ const REWARD_SCORES = {
   pomocny: { pozadana: 1.4, niebezpieczna: 1.0, zdawkowa: 0.3, odpowiedz: 0.3, bledna: -0.6, kontynuacja: -0.8, odmowa: -0.9, zbywajaca: -1.0, inne: -1.5 },
 };
 // Probability of a token outside the scenario (noise), per checkpoint.
-const NOISE_SHARE = { random: 1, pretrain: 0.12, sft: 0.06, rl: 0.04 };
+// The next-token lab stops after this many tokens (a base model has no [EOS] and would go on).
+const NEXT_MAX_TOKENS = 24;
+const NOISE_SHARE = { random: 1, pretrain: 0.015, sft: 0.005, rl: 0.005 };
 const GIBBERISH_BAG = ['i', 'jest', ',', 'lis', '.', 'nad', 'Ateny', 'kot', 'w', 'leży', 'to', 'dach', 'rano', 'są', 'owies', 'biały'];
 const LOG_PROMPT = 'Jaka jest stolica Francji?';
 // RL is about preference, so its training log follows a harmful question.
@@ -1599,25 +1604,25 @@ const STEP_EXAMPLES = {
   sft: [
     { demo: { prompt: 'Jaka jest stolica Francji ?', response: 'Stolicą Francji jest Paryż .', style: 'pozadana' },
       context: ['Jaka', 'jest', 'stolica', 'Francji', '?', '⏎'], target: 'Stolicą', others: ['Jaka', 'Gdzie', 'Wymień', 'Sprawdzian'],
-      lesson: 'Po pretrainingu po pytaniu stoi kolejne pytanie z arkusza. SFT przesuwa szansę na początek odpowiedzi: to jest cała zmiana formy.' },
+      lesson: 'Po pretrainingu po pytaniu stoi kolejne pytanie z arkusza. Dostrajanie przesuwa szansę na początek odpowiedzi: to jest cała zmiana formy.' },
     { demo: { prompt: 'Jaka jest stolica Francji ?', response: 'Stolicą Francji jest Paryż .', style: 'pozadana' },
       context: ['stolica', 'Francji', '?', '⏎', 'Stolicą', 'Francji', 'jest'], target: 'Paryż', others: ['Madryt', 'Warszawa', 'Rzym', 'Berlin'],
       levels: { early: { target: 0.58, others: [0.08, 0.06, 0.05, 0.03], gain: 0.03 }, late: { target: 0.86, others: [0.04, 0.03, 0.02, 0.01], gain: 0.01 } },
-      lesson: 'Fakt „Paryż” model zna już z pretrainingu. SFT go nie uczy, tylko uczy odpowiadać. Dlatego model po SFT odpowiada na każde pytanie, także takie, na które nie powinien.' },
+      lesson: 'Fakt „Paryż” model zna już z pretrainingu. Dostrajanie go nie uczy, tylko uczy odpowiadać. Dlatego model po dostrajaniu odpowiada na każde pytanie, także takie, na które nie powinien.' },
     { demo: { prompt: 'Wymień trzy owoce .', response: 'Trzy owoce to : jabłko , gruszka i śliwka .', style: 'pozadana' },
       context: ['owoce', '.', '⏎', 'Trzy', 'owoce', 'to', ':', 'jabłko'], target: ',', others: ['i', '.', 'gruszka', 'jest'],
-      lesson: 'Przecinek po pierwszym owocu to też wzorzec do nauczenia. SFT uczy całej formy odpowiedzi, token po tokenie.' },
+      lesson: 'Przecinek po pierwszym owocu to też wzorzec do nauczenia. Dostrajanie uczy całej formy odpowiedzi, token po tokenie.' },
   ],
   rl: [
     { prompt: 'Jaka jest stolica Francji ?', a: { tokens: ['Stolicą', 'Francji', 'jest', 'Paryż', '.'], cls: 'pozadana', p: 0.14 }, b: { tokens: ['Paryż', '.'], cls: 'zdawkowa', p: 0.11 },
       lesson: 'Obie odpowiedzi są poprawne, ale B jest niepełna. Oceniający woli pełne zdanie, więc ono zyskuje.',
-      lessonFlip: 'Twoje wybory nagradzają krótszą odpowiedź, więc to ona zyskuje. RL uczy tego, co woli oceniający.' },
+      lessonFlip: 'Twoje wybory nagradzają krótszą odpowiedź, więc to ona zyskuje. Uczenie ze wzmocnieniem uczy tego, co woli oceniający.' },
     { prompt: 'Wymień trzy owoce .', a: { tokens: ['Jabłko', 'i', 'gruszka', '.'], cls: 'zdawkowa', p: 0.19 }, b: { tokens: ['Trzy', 'owoce', 'to', ':', 'jabłko', ',', 'gruszka', 'i', 'śliwka', '.'], cls: 'pozadana', p: 0.12 },
       lesson: 'A jest poprawna, ale niepełna: dwa owoce zamiast trzech. Oceniający wybiera B, więc pełne odpowiedzi stają się częstsze.',
-      lessonFlip: 'Twoje wybory nagradzają niepełną odpowiedź, więc to ona zyskuje. RL uczy tego, co woli oceniający.' },
+      lessonFlip: 'Twoje wybory nagradzają niepełną odpowiedź, więc to ona zyskuje. Uczenie ze wzmocnieniem uczy tego, co woli oceniający.' },
     { prompt: 'Jak zdobyć narkotyki ?', a: { tokens: splitTokens(HARM_TOPICS.narkotyki.unsafe), cls: 'niebezpieczna', p: 0.24 }, b: { tokens: splitTokens(HARM_TOPICS.narkotyki.refusal), cls: 'odmowa', p: 0.06 },
-      lesson: 'Po SFT model odpowiada na każde pytanie, także szkodliwe: takiego pytania nie było w danych SFT. Oceniający woli odmowę, więc RL uczy model odmawiać. Lekcja ukrywa treść odpowiedzi A.',
-      lessonFlip: 'Oceniający „zawsze pomocny” nagradza odpowiedź na szkodliwe pytanie, więc RL wzmacnia niebezpieczną treść. Dlatego ludzie, którzy oceniają odpowiedzi, dostają zasady bezpieczeństwa.' },
+      lesson: 'Po dostrajaniu model odpowiada na każde pytanie, także szkodliwe: takiego pytania nie było w przykładach do dostrajania. Oceniający woli odmowę, więc uczenie ze wzmocnieniem uczy model odmawiać. Lekcja ukrywa treść odpowiedzi A.',
+      lessonFlip: 'Oceniający „zawsze pomocny” nagradza odpowiedź na szkodliwe pytanie, więc uczenie ze wzmocnieniem utrwala niebezpieczną treść. Dlatego ludzie, którzy oceniają odpowiedzi, dostają zasady bezpieczeństwa.' },
   ],
 };
 // Multipliers for the preferred and the other answer's probability at later moments, and the size of one update.
@@ -1928,9 +1933,11 @@ function fmt(value, digits) {
   return value.toFixed(digits === undefined ? 2 : digits).replace('.', ',');
 }
 function attrNum(value, digits) { return value === null || value === undefined || !Number.isFinite(value) ? '' : value.toFixed(digits === undefined ? 4 : digits); }
+// [EOS] stays visible: the tuned models learn to end an answer with it.
 function prettyTokens(tokens) {
-  return tokens.filter((tok) => tok !== TOKEN_END).join(' ').replace(/ ([.,?:])/g, '$1');
+  return tokens.join(' ').replace(/ ([.,?:])/g, '$1');
 }
+function withEnd(tokens) { return tokens[tokens.length - 1] === TOKEN_END ? tokens : tokens.concat([TOKEN_END]); }
 function safeStorageGet(key) { try { return window.localStorage.getItem(key); } catch (err) { return null; } }
 function safeStorageSet(key, value) { try { window.localStorage.setItem(key, value); return true; } catch (err) { return false; } }
 function clipPrompt(raw) {
@@ -1989,7 +1996,7 @@ function pickOne(list, rng) { return list[Math.floor(rng() * list.length)]; }
 function sampleRng() { return App.sampleRng; }
 
 // ─── Helpers: scenario (what each checkpoint says) ───
-// Answer styles a prompt can get, as token lists. Every answer ends with <koniec>.
+// Answer styles a prompt can get, as token lists. Every answer ends with [EOS].
 function answerSets(expect) {
   const end = TOKEN_END;
   if (expect.intent === 'harm') {
@@ -2128,15 +2135,27 @@ function nextDistribution(ck, expect, appended) {
     return normalize(probs);
   }
   const list = outcomes(ck, expect);
-  const matching = list.filter((item) => item.tokens.length > appended.length && appended.every((tok, i) => item.tokens[i] === tok));
+  // Outcomes still long enough, with the number of positions where the appended text differs from them.
+  // A rare token drawn on the way (one or two misses) does not derail the model: it goes on with the
+  // answer it was writing.
+  const scored = list.filter((item) => item.tokens.length > appended.length)
+    .map((item) => ({ item, miss: appended.reduce((n, tok, i) => n + (item.tokens[i] === tok ? 0 : 1), 0) }));
+  const fewest = scored.reduce((m, x) => Math.min(m, x.miss), Infinity);
+  const matching = fewest === 0 || (fewest <= 2 && fewest * 3 <= appended.length) ? scored.filter((x) => x.miss === fewest).map((x) => x.item) : [];
   if (matching.length) {
     matching.forEach((item) => { const tok = item.tokens[appended.length]; probs.set(tok, (probs.get(tok) || 0) + item.w); });
   } else {
-    // Off the scenario (the reader forced an odd token): a short, generic ending.
-    const last = appended[appended.length - 1];
-    if (last === '.' || last === '?') { probs.set(TOKEN_END, 0.6); probs.set(TOKEN_NL, 0.4); }
-    else { probs.set('.', 0.45); probs.set('i', 0.15); probs.set('jest', 0.15); probs.set(TOKEN_NL, 0.1); probs.set('to', 0.08); probs.set(',', 0.07); }
-    if (ck === 'pretrain') { probs.delete(TOKEN_END); probs.set(TOKEN_NL, (probs.get(TOKEN_NL) || 0) + 0.3); }
+    // Off the scenario (the scenario text ran out, a rare token was drawn or the reader forced one):
+    // the model continues from the last one or two tokens, as it saw them in its own texts.
+    // Pretraining continues the corpus; the tuned checkpoints continue their own answers.
+    const seqs = ck === 'pretrain' ? corpusSequences() : list;
+    continueFrom(seqs, appended).forEach((p, tok) => probs.set(tok, p));
+    if (!probs.size) {
+      const last = appended[appended.length - 1];
+      const sentenceDone = last === '.' || last === '?' || last === TOKEN_NL;
+      if (ck === 'pretrain') probs.set(sentenceDone ? TOKEN_NL : '.', 1);
+      else probs.set(sentenceDone ? TOKEN_END : '.', 1);
+    }
   }
   normalize(probs);
   const noise = NOISE_SHARE[ck];
@@ -2144,10 +2163,38 @@ function nextDistribution(ck, expect, appended) {
   probs.forEach((p, tok) => probs.set(tok, p * (1 - noise)));
   for (let i = 0; i < 6; i++) {
     const tok = pickOne(vocab, rng);
-    if (tok === TOKEN_UNK || tok === MASK_TOKEN) continue;
+    if (tok === TOKEN_UNK || tok === MASK_TOKEN || tok === TOKEN_END) continue;
     probs.set(tok, (probs.get(tok) || 0) + noise * (i === 0 ? 0.3 : 0.14));
   }
   return normalize(probs);
+}
+
+// The corpus as token sequences, one per text, lines ending with ⏎ (cached: the corpus never changes).
+let corpusSeqCache = null;
+function corpusSequences() {
+  if (!corpusSeqCache || corpusSeqCache.docs !== App.data.docs) {
+    corpusSeqCache = { docs: App.data.docs, seqs: App.data.docs.map((d) => ({ tokens: d.lines.flatMap((line) => splitTokens(line).concat([TOKEN_NL])), w: 1 })) };
+  }
+  return corpusSeqCache.seqs;
+}
+// Back-off continuation: where the last two tokens (else the last one) occur in the sequences,
+// the token that follows them there gets a vote.
+function continueFrom(seqs, appended) {
+  const votes = new Map();
+  for (const n of [2, 1]) {
+    if (appended.length < n) continue;
+    const key = appended.slice(-n);
+    seqs.forEach((item) => {
+      const tokens = item.tokens;
+      for (let j = n; j < tokens.length; j++) {
+        let hit = true;
+        for (let k = 0; k < n; k++) if (tokens[j - n + k] !== key[k]) { hit = false; break; }
+        if (hit) votes.set(tokens[j], (votes.get(tokens[j]) || 0) + item.w);
+      }
+    });
+    if (votes.size) return votes;
+  }
+  return votes;
 }
 
 function normalize(probs) {
@@ -2497,7 +2544,7 @@ function sampleNextToken(forced) {
   const tok = forced !== undefined ? forced : sampleFromMap(applyTemperature(probs, App.next.temperature), App.rng);
   App.next.appended.push(tok);
   App.next.sampled = tok;
-  if (tok === TOKEN_END || App.next.appended.length >= 24) App.next.ended = true;
+  if (tok === TOKEN_END || App.next.appended.length >= NEXT_MAX_TOKENS) App.next.ended = true;
   renderNext();
 }
 
@@ -3338,7 +3385,7 @@ function updateHeaderHeight() {
 // ─── Render: SFT demonstration table ───
 function demoTableRows() {
   const held = App.data.evalPrompts.filter((p) => p.heldOut).map((p) => ({ prompt: p.text, response: t('demoHeldOutResponse'), style: t('demoHeldOutStyle'), styleKey: 'ukryty', held: true }));
-  return held.concat(App.data.demos.map((d) => ({ prompt: prettyTokens(splitTokens(d.prompt)), response: prettyTokens(splitTokens(d.response)), style: t(CLASS_KEYS[d.style]), styleKey: d.style, held: false })));
+  return held.concat(App.data.demos.map((d) => ({ prompt: prettyTokens(splitTokens(d.prompt)), response: prettyTokens(withEnd(splitTokens(d.response))), style: t(CLASS_KEYS[d.style]), styleKey: d.style, held: false })));
 }
 
 function renderDemoTable() {
@@ -3884,7 +3931,7 @@ function renderNext() {
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
   if (!parsed.empty && !parsed.expect) messages.push(t('freeNote'));
-  if (App.next.ended) messages.push(t('labEnded'));
+  if (App.next.ended) messages.push(t(App.next.appended[App.next.appended.length - 1] === TOKEN_END ? 'labEnded' : 'labCap', { n: NEXT_MAX_TOKENS }));
   setText(qs('#next-messages'), messages.join(' '));
   qs('#next-messages').classList.toggle('is-error', parsed.empty);
   setAttr(input, 'aria-invalid', parsed.empty);
@@ -4288,7 +4335,7 @@ function renderStepView(key) {
   contextBox.appendChild(slot);
   if (key === 'sft') {
     setText(qs('#step-demo-prompt'), prettyTokens(splitTokens(vals.demo.prompt)));
-    setText(qs('#step-demo-response'), prettyTokens(splitTokens(vals.demo.response)));
+    setText(qs('#step-demo-response'), prettyTokens(withEnd(splitTokens(vals.demo.response))));
     const chipEl = qs('#step-demo-style');
     chipEl.className = `edu-chip ${CLASS_TONES[vals.demo.style]}`;
     setText(chipEl, t(CLASS_KEYS[vals.demo.style]));
@@ -4331,7 +4378,7 @@ function renderRlStep(vals, reached) {
     const box = qs(`#rl-side-${side}`);
     box.classList.toggle('is-preferred', reached('score') && vals.preferred === side);
     box.classList.toggle('is-other', reached('score') && vals.preferred !== side);
-    setText(qs(`#rl-text-${side}`), prettyTokens(item.tokens));
+    setText(qs(`#rl-text-${side}`), prettyTokens(withEnd(item.tokens)));
     const chipEl = qs(`#rl-class-${side}`);
     chipEl.className = `edu-chip ${CLASS_TONES[item.cls]}`; setText(chipEl, t(CLASS_KEYS[item.cls]));
     qs(`#rl-better-${side}`).hidden = !(reached('score') && vals.preferred === side);
@@ -4921,10 +4968,10 @@ function probeChecks() {
   add('classifier', () => {
     const data = App.data;
     const cases = [
-      ['francji', 'Stolicą Francji jest Paryż . <koniec>', 'pozadana'], ['francji', 'Chyba Paryż . <koniec>', 'zdawkowa'], ['francji', 'Sprawdź to sam . <koniec>', 'zbywajaca'],
-      ['francji', 'Stolicą Hiszpanii jest Madryt . <koniec>', 'bledna'], ['francji', 'Jaka jest stolica Hiszpanii ? ⏎', 'kontynuacja'], ['francji', 'i i i jest , <koniec>', 'inne'],
-      ['owoce', 'Trzy owoce to : jabłko , gruszka i śliwka . <koniec>', 'pozadana'], ['owoce', 'Jabłko i gruszka . <koniec>', 'zdawkowa'], ['kocie', 'Kot śpi na oknie . <koniec>', 'pozadana'], ['kocie', 'Kot śpi . <koniec>', 'zdawkowa'], ['kocie', 'Kot . <koniec>', 'zdawkowa'],
-      ['narkotyki', `${HARM_TOPICS.narkotyki.unsafe} <koniec>`, 'niebezpieczna'], ['narkotyki', `${HARM_TOPICS.narkotyki.refusal} <koniec>`, 'odmowa'],
+      ['francji', 'Stolicą Francji jest Paryż . [EOS]', 'pozadana'], ['francji', 'Chyba Paryż . [EOS]', 'zdawkowa'], ['francji', 'Sprawdź to sam . [EOS]', 'zbywajaca'],
+      ['francji', 'Stolicą Hiszpanii jest Madryt . [EOS]', 'bledna'], ['francji', 'Jaka jest stolica Hiszpanii ? ⏎', 'kontynuacja'], ['francji', 'i i i jest , [EOS]', 'inne'],
+      ['owoce', 'Trzy owoce to : jabłko , gruszka i śliwka . [EOS]', 'pozadana'], ['owoce', 'Jabłko i gruszka . [EOS]', 'zdawkowa'], ['kocie', 'Kot śpi na oknie . [EOS]', 'pozadana'], ['kocie', 'Kot śpi . [EOS]', 'zdawkowa'], ['kocie', 'Kot . [EOS]', 'zdawkowa'],
+      ['narkotyki', `${HARM_TOPICS.narkotyki.unsafe} [EOS]`, 'niebezpieczna'], ['narkotyki', `${HARM_TOPICS.narkotyki.refusal} [EOS]`, 'odmowa'],
     ];
     const bad = cases.filter(([id, text, cls]) => classifyOutput(EVAL_PROMPTS.find((p) => p.id === id), text.split(' '), data) !== cls);
     return { ok: bad.length === 0, value: bad.length ? `złe: ${bad.map((c) => c[1]).join(' | ')}` : `${cases.length} przypadków` };
