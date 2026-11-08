@@ -309,6 +309,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .group-hero > :only-child { grid-column: 1 / -1; }
 .group-hero .edu-overline { color: inherit; margin: 0 0 6px; }
 .group-hero .lead { margin: 0; font-size: var(--body-lg); line-height: 1.5; }
+.group-hero .lead + .lead { margin-top: 10px; }
 .group-hero .hero-steps { margin: 12px 0 0; padding-left: 1.4em; display: grid; gap: 6px; font-size: var(--body); line-height: 1.5; }
 .group-hero .hero-tail { margin: 12px 0 0; font-size: var(--body); line-height: 1.5; }
 .gh-num { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; }
@@ -1022,7 +1023,7 @@ const T = {
 
   modelHead: 'Jak działa model',
   modelHeroOver: 'Podstawa',
-  modelHeroLead: 'Model nie szuka odpowiedzi. Zgaduje następny token i powtarza to wiele razy.',
+  modelHeroLead: 'Pytasz „Dlaczego Księżyc świeci? Odpowiedz jednym zdaniem”. Model najpierw zamienia Twoją wiadomość na tokeny. Następnie oblicza, jak prawdopodobne są różne tokeny, od których mógłby zacząć odpowiedź, i wybiera jeden z nich.\nPo każdym wyborze model bierze pod uwagę zarówno Twoje pytanie, jak i to, co już dopisał. Gdy odpowiedź brzmi „Księżyc świeci, ponieważ odbija…”, prawdopodobnym ciągiem dalszym jest „światło słońca”. Te dwa słowa mogą składać się z kilku tokenów, więc model dopisuje je kawałek po kawałku. Powtarza ten proces, aż wybierze specjalny token oznaczający koniec odpowiedzi albo osiągnie limit długości.\nNa wybór kolejnych tokenów wpływają wszystkie etapy treningu. Dzięki treningowi wstępnemu „światło słońca” jest prawdopodobnym dokończeniem zdania. Dostrajanie pomaga modelowi odpowiedzieć na pytanie i zmieścić się w jednym zdaniu. Uczenie ze wzmocnieniem zwiększa szansę, że wybierze odpowiedź zgodną z tym, co nagradzano podczas treningu – w tym przykładzie poprawną i zwięzłą.',
   modelRow: 'Jeden krok generowania',
   modelChain1: 'Tekst dzielimy na tokeny.',
   modelChain2: 'Model liczy szansę każdego tokenu na następne miejsce.',
@@ -3443,7 +3444,9 @@ function secHead(icon, tone, key) {
   return `<div class="sec-head"><span class="badge badge-lg ${tone}">${ic(icon)}</span><h2>${t(key)}</h2></div>`;
 }
 function heroHtml(tone, overKey, leadKey, progress) {
-  return `<div class="group-hero ${tone} edu-block"><div><p class="edu-overline">${t(overKey)}</p><p class="lead">${t(leadKey)}</p></div>${progress || ''}</div>`;
+  // A lead may hold several paragraphs, separated by \n.
+  const lead = t(leadKey).split('\n').map((para) => `<p class="lead">${para}</p>`).join('');
+  return `<div class="group-hero ${tone} edu-block"><div><p class="edu-overline">${t(overKey)}</p>${lead}</div>${progress || ''}</div>`;
 }
 // Step pages: the hero walks through one training moment as a numbered list.
 function heroStepsHtml(tone, overKey, leadKey, stepsKey, tailKey) {
