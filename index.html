@@ -1162,6 +1162,7 @@ const T = {
   cmpFreeLabel: 'Twój prompt',
   cmpRun: 'Porównaj',
   cmpPipeline: 'Uruchom cały potok',
+  cmpNeedTraining: 'Nie ma jeszcze czego porównać: żaden etap nie został uruchomiony. Kliknij „Uruchom cały potok” albo wytrenuj etapy na ich stronach.',
   cmpPipelineHint: 'Uruchamia po kolei etapy, których jeszcze nie ma. Uczenie ze wzmocnieniem używa Twoich ocen, jeśli jest ich dość, inaczej oceniającego „rzeczowy”.',
   cmpPipelineBusy: 'Symulacja trwa. Postęp widać na pasku u góry.',
   cmpPipelineDone: 'Wszystkie etapy są gotowe. Reset w widoku etapu pozwala zacząć od nowa.',
@@ -4072,6 +4073,7 @@ function renderBench() {
   if (parsed.allUnknown) messages.push(t('allUnknown'));
   else if (parsed.unknown) messages.push(t('unknownNote'));
   if (!parsed.empty && !parsed.expect) messages.push(t('freeNote'));
+  if (bench.askedUntrained && !STAGE_ORDER.some(checkpointReady)) messages.push(t('cmpNeedTraining'));
   setText(qs('#cmp-messages'), messages.join(' '));
   qs('#cmp-messages').classList.toggle('is-error', parsed.empty);
   renderTokenChips(qs('#cmp-tokens'), ctxTokens, Infinity);
@@ -4838,7 +4840,7 @@ const ACTIONS = {
   'next-preset': (el) => { App.next.text = el.dataset.prompt; App.next.clippedText = null; resetNextLab(); renderNext(); },
   checkpoint: (el) => { App.next.checkpoint = el.dataset.ck; App.next.movedNote = ''; resetNextLab(); renderNext(); },
   reroll: () => { refreshBench(); renderBench(); },
-  'cmp-run': () => applyComparePrompt(),
+  'cmp-run': () => applyComparePrompt(true),
   pipeline: () => startPipeline(),
   source: (el) => setSource(el.dataset.src),
   own: (el) => labelOwn(el.dataset.choice),
@@ -4893,15 +4895,17 @@ function benchInSync() {
   return STAGE_ORDER.every((key) => Boolean(bench.columns[key]) === Boolean(!bench.parsed.empty && checkpointReady(key)));
 }
 
-// Idempotent: applying the same prompt again keeps the current samples unless the bench is out of sync.
-function applyComparePrompt() {
+// Idempotent for the select/Enter paths: the same prompt keeps the current samples unless the bench is out of sync.
+// The "Porównaj" button passes fresh = true, so a click always draws new samples (the select already applied the prompt).
+function applyComparePrompt(fresh) {
   const select = qs('#cmp-select');
   const bench = App.bench;
   const text = select.value === 'free'
     ? readPromptField(qs('#cmp-free'), bench)
     : EVAL_PROMPTS.find((p) => p.id === select.value).text;
-  const unchanged = text === bench.text && benchInSync();
+  const unchanged = !fresh && text === bench.text && benchInSync();
   bench.text = text;
+  if (fresh) bench.askedUntrained = !STAGE_ORDER.some(checkpointReady);
   if (!unchanged) refreshBench();
   renderBench();
 }
