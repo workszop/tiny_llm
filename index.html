@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGRkQ1MDAiLz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg4IDgpIHNjYWxlKDIpIiBmaWxsPSJub25lIiBzdHJva2U9IiMxQzE5MTciIHN0cm9rZS13aWR0aD0iMi4yNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj4gIDxwYXRoIGQ9Ik0xMiAxOFY1IiAvPiAgPHBhdGggZD0iTTE1IDEzYTQuMTcgNC4xNyAwIDAxLTMtNCA0LjE3IDQuMTcgMCAwMS0zIDQiIC8+ICA8cGF0aCBkPSJNMTcuNzA3IDYuMjk0QTMgMyAwIDEwMTIgNWEzIDMgMCAxMC01LjcwNyAxLjI5NCIgLz4gIDxwYXRoIGQ9Ik0xNy45OTYgNS4xMjVhNCA0IDAgMDEyLjUyNiA1Ljc3IiAvPiAgPHBhdGggZD0iTTE4IDE4YTQgNCAwIDAwMi03LjQ2NSIgLz4gIDxwYXRoIGQ9Ik0xOS45NjcgMTcuNDgyYTQgNCAwIDExLTcuOTY3LjUxNyA0IDQgMCAxMS03Ljk2Ny0uNTE3IiAvPiAgPHBhdGggZD0iTTYgMThhNCA0IDAgMDEtMi03LjQ2NSIgLz4gIDxwYXRoIGQ9Ik02LjAwNCA1LjEyNWE0IDQgMCAwMC0yLjUyNiA1Ljc3IiAvPjwvZz48L3N2Zz4K">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=202611090930">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=202611090930">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=202611090930">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=202611090930">
+<meta name="theme-color" content="#FFD500">
 <title>Jak uczy się model językowy</title>
 <style>
 /* Fonts are served from this repo (fonts/), not from Google, so visitors' addresses never reach a third party.
@@ -137,6 +141,10 @@
   --sp-12: 48px; --sp-16: 64px; --sp-20: 80px; --sp-24: 96px;
 
   /* ---- Radii (friendly, generous) ---- */
+  /* Page gutter (user decision 2026-11-07): content ~70% of the viewport on wide screens
+     (15% margin each side from ~1280px), never squeezed below 900px, 16-72px on phones/tablets.
+     Every full-width band, header row, page head and footer pads its content with it. */
+  --gutter: max(clamp(16px, 4vw, 72px), min(15vw, calc((100vw - 900px) / 2)));
   --r-xs: 6px; --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px; --r-pill: 999px;
 
   /* ---- Elevation - warm, low, soft ---- */
@@ -222,7 +230,7 @@
 body.edu { background: var(--paper); color: var(--ink); font-family: var(--font-sans); }
 
 /* ─── App: tokens that are not in the edustyl set ─── */
-:root { --gutter: clamp(16px, 4vw, 72px); --header-h: 73px; }
+:root { --header-h: 73px; }
 
 /* ─── Base ─── */
 html, body { margin: 0; padding: 0; }
@@ -280,10 +288,6 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .sec { margin: 0; padding: 36px 0 44px; border-top: 1px solid var(--line); }
 [data-view-panel] > .sec:nth-of-type(even) { background: var(--paper-2); }
 .sec > .wrap { padding: 0 var(--gutter); display: grid; gap: 22px; }
-/* Wide screens: page content takes 70% of the viewport width, centred. */
-@media (min-width: 1280px) {
-  .page-head, .sec > .wrap { width: 70vw; margin-inline: auto; padding-inline: 0; }
-}
 .sec-head { display: flex; align-items: center; gap: 14px; }
 .sec-head h2, .sec-head h1.sec-h1 { margin: 0; font-size: var(--h2); line-height: 1.12; letter-spacing: -0.015em; }
 .sec-head::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
